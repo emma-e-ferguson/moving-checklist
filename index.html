@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moving Checklist — Detroit to Pittsboro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --border: rgba(0,0,0,0.09);
+    --border-strong: rgba(0,0,0,0.16);
+    --text: #1A1A1A;
+    --text-secondary: #6B6860;
+    --text-tertiary: #9A9890;
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --purple: #534AB7;
+    --purple-light: #EEEDFE;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --coral: #993C1D;
+    --coral-light: #FAECE7;
+    --drag-over: #EEF9F5;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem 4rem; }
+  .page { max-width: 740px; margin: 0 auto; }
+  header { margin-bottom: 1.5rem; }
+  header h1 { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 2px; }
+  header p { font-size: 13px; color: var(--text-secondary); font-family: 'DM Mono', monospace; }
+
+  .top-bar { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .progress-wrap { flex: 1; min-width: 180px; }
+  .progress-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .progress-track { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.4s ease; }
+  .progress-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-tertiary); margin-top: 5px; }
+
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .who { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; font-family: 'DM Mono', monospace; cursor: default; }
+  .who-e { background: var(--purple-light); color: var(--purple); }
+  .who-c { background: var(--teal-light); color: var(--teal); }
+  .who-b { background: var(--amber-light); color: var(--amber); }
+  .tag { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; font-family: 'DM Mono', monospace; cursor: default; }
+  .tag-logistics { background: var(--coral-light); color: var(--coral); }
+  .tag-admin { background: var(--blue-light); color: var(--blue); }
+
+  .top-actions { display: flex; gap: 8px; align-items: center; }
+  .btn { font-size: 12px; font-family: 'DM Sans', sans-serif; background: none; border: 0.5px solid var(--border-strong); border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; white-space: nowrap; color: var(--text-secondary); }
+  .btn:hover { background: var(--bg); }
+  .btn.active { background: var(--text); color: white; border-color: var(--text); }
+  .btn-danger { color: var(--red); border-color: rgba(163,45,45,0.3); }
+  .btn-danger:hover { background: var(--red-light); }
+
+  .phase-header { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); font-family: 'DM Mono', monospace; margin: 1.5rem 0 0.5rem; padding: 0 2px; }
+
+  .day { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 6px; transition: border-color 0.15s; }
+  .day.critical { border-left: 3px solid var(--red); }
+  .day.important { border-left: 3px solid var(--amber); }
+  .day.milestone { border-left: 3px solid var(--green); }
+  .day.neutral { border-left: 3px solid var(--border-strong); }
+  .day.off { background: var(--bg); border-left: 3px solid var(--border); }
+  .day.drag-over { border-color: var(--green); background: var(--drag-over); }
+  .day.drag-over .day-tasks { background: var(--drag-over); }
+
+  .day-header { display: flex; align-items: center; cursor: pointer; user-select: none; }
+  .day-header:hover { background: rgba(0,0,0,0.015); }
+  .day-label { min-width: 112px; padding: 10px 12px; border-right: 0.5px solid var(--border); flex-shrink: 0; }
+  .day-date { font-size: 12px; font-weight: 500; }
+  .day-name { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; font-family: 'DM Mono', monospace; }
+  .day-summary { flex: 1; padding: 10px 14px; font-size: 13px; color: var(--text-secondary); }
+  .day-progress { font-size: 11px; color: var(--text-tertiary); padding-right: 4px; white-space: nowrap; font-family: 'DM Mono', monospace; }
+  .chevron { font-size: 10px; color: var(--text-tertiary); padding: 0 12px; transition: transform 0.2s; }
+  .day.collapsed .chevron { transform: rotate(-90deg); }
+
+  .day-tasks { border-top: 0.5px solid var(--border); padding: 4px 0; min-height: 8px; transition: background 0.15s; }
+  .day.collapsed .day-tasks { display: none; }
+
+  /* drop indicator */
+  .drop-indicator { height: 2px; background: var(--green); border-radius: 1px; margin: 0 14px; display: none; }
+  .drop-indicator.visible { display: block; }
+
+  .task-row {
+    display: flex; align-items: flex-start; gap: 10px; padding: 7px 14px;
+    border-bottom: 0.5px solid var(--border); transition: background 0.1s;
+    position: relative;
+  }
+  .task-row:last-child { border-bottom: none; }
+  .task-row.dragging { opacity: 0.4; background: var(--bg); }
+  .task-row.drag-above::before { content: ''; display: block; position: absolute; top: -1px; left: 14px; right: 14px; height: 2px; background: var(--green); border-radius: 1px; }
+  .task-row.drag-below::after { content: ''; display: block; position: absolute; bottom: -1px; left: 14px; right: 14px; height: 2px; background: var(--green); border-radius: 1px; }
+
+  .drag-handle {
+    width: 14px; flex-shrink: 0; margin-top: 4px; cursor: grab; color: var(--text-tertiary);
+    opacity: 0; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; line-height: 1;
+  }
+  .edit-mode .drag-handle { opacity: 1; }
+  .drag-handle:active { cursor: grabbing; }
+
+  .task-cb {
+    width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border-strong);
+    flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; background: white; cursor: pointer;
+  }
+  .task-cb.checked { background: var(--green); border-color: var(--green); }
+  .task-cb.checked::after { content: ''; display: block; width: 4px; height: 7px; border: 1.5px solid white; border-top: none; border-left: none; transform: rotate(45deg) translate(-1px, -1px); }
+
+  .task-text-wrap { flex: 1; min-width: 0; }
+  .task-text { font-size: 13px; line-height: 1.45; word-break: break-word; }
+  .task-text.checked { color: var(--text-tertiary); text-decoration: line-through; }
+  .task-text-input {
+    font-size: 13px; font-family: 'DM Sans', sans-serif; line-height: 1.45;
+    border: 1px solid var(--green); border-radius: 4px; padding: 2px 6px;
+    width: 100%; background: white; color: var(--text); outline: none;
+    display: none;
+  }
+  .editing .task-text { display: none; }
+  .editing .task-text-input { display: block; }
+
+  .task-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity 0.15s; }
+  .edit-mode .task-actions { opacity: 1; }
+  .task-btn { font-size: 11px; background: none; border: none; cursor: pointer; color: var(--text-tertiary); padding: 2px 4px; border-radius: 4px; transition: background 0.1s, color 0.1s; line-height: 1; }
+  .task-btn:hover { background: var(--bg); color: var(--text); }
+  .task-btn.delete:hover { background: var(--red-light); color: var(--red); }
+
+  .badges { display: inline-flex; gap: 4px; flex-wrap: wrap; margin-left: 6px; vertical-align: middle; }
+
+  /* add task row */
+  .add-task-row { display: none; align-items: center; gap: 10px; padding: 7px 14px; border-top: 0.5px solid var(--border); }
+  .edit-mode .add-task-row { display: flex; }
+  .add-task-input { flex: 1; font-size: 13px; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 8px; background: var(--bg); outline: none; color: var(--text); }
+  .add-task-input:focus { border-color: var(--green); background: white; }
+  .add-badge-select { font-size: 11px; font-family: 'DM Mono', monospace; border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 6px; background: var(--bg); color: var(--text-secondary); outline: none; cursor: pointer; }
+  .add-btn { font-size: 12px; font-family: 'DM Sans', sans-serif; background: var(--green); color: white; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+  .add-btn:hover { opacity: 0.9; }
+
+  /* drag ghost */
+  #drag-ghost { position: fixed; pointer-events: none; z-index: 9999; background: white; border: 1px solid var(--green); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: none; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Detroit → Pittsboro</h1>
+    <p>Moving checklist · May 2 – May 23, 2026</p>
+  </header>
+
+  <div class="top-bar">
+    <div class="progress-wrap">
+      <div class="progress-label">Overall progress</div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="progress-count" id="prog-count">0 of 0 tasks complete</div>
+    </div>
+    <div class="legend">
+      <span class="who who-e">E Emma</span>
+      <span class="who who-c">C Cole</span>
+      <span class="who who-b">B Both</span>
+      <span class="tag tag-logistics">logistics</span>
+      <span class="tag tag-admin">admin</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="edit-toggle-btn" onclick="toggleEditMode()">✏️ Edit</button>
+      <button class="btn btn-danger" onclick="resetAll()">Reset</button>
+    </div>
+  </div>
+
+  <div id="checklist-root"></div>
+</div>
+
+<div id="drag-ghost"></div>
+
+<script>
+const STATE_KEY = 'moving_checklist_v2_2026';
+
+// ── DEFAULT DATA ──────────────────────────────────────────────────────────────
+const DEFAULT_PHASES = [
+  {
+    label: "Anytime — Admin & logistics",
+    days: [
+      {
+        id: "day-admin", date: "Do soon", name: "Background", type: "important",
+        tasks: [
+          { id: "t1", text: "USPS mail forward to parents' address — do online, 5 min", badges: ["B","admin"], done: false },
+          { id: "t2", text: "Call car insurance — update address and confirm cross-state coverage for the move", badges: ["B","admin"], done: false },
+          { id: "t3", text: "Complete U-Haul storage move-in online (Reservation #782059-00110683) — get unit # and access code", badges: ["B","logistics"], done: false },
+          { id: "t4", text: "Confirm Penske reservation for May 18", badges: ["B","logistics"], done: false },
+          { id: "t5", text: "Book dog-friendly hotel in Charleston, WV for May 19 night", badges: ["B","logistics"], done: false },
+          { id: "t6", text: "Map truck-friendly route for Cole (Penske): Detroit → Charleston → Pittsboro", badges: ["C","logistics"], done: false },
+          { id: "t7", text: "Map MachE charging stops: Detroit → Charleston → Pittsboro", badges: ["E","logistics"], done: false },
+          { id: "t8", text: "Confirm paid labor crew for May 18 afternoon", badges: ["B","logistics"], done: false },
+          { id: "t9", text: "Coordinate landlord walkthrough and key/gate opener return date", badges: ["B","admin"], done: false },
+          { id: "t10", text: "Check Penske fuel policy — prepay or fill tank before return", badges: ["B","logistics"], done: false },
+          { id: "t11", text: "Confirm parents have space to park 26ft Penske overnight May 20", badges: ["B","logistics"], done: false },
+        ]
+      }
+    ]
+  },
+  {
+    label: "Week 1 — Packing push (May 2–7)",
+    days: [
+      {
+        id: "day-0502", date: "Sat May 2", name: "Today · ~3 hrs", type: "important",
+        tasks: [
+          { id: "t12", text: "✓ Storage unit booked (U-Haul 10×15×8, move-in May 21)", badges: ["B"], done: false },
+          { id: "t13", text: "Master bedroom — Cole's closet, books, decor, non-travel clothes", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0503", date: "Sun May 3", name: "Full day", type: "neutral",
+        tasks: [
+          { id: "t14", text: "Sewing room (3F) — SEW-01, 03, 04, 06 (SEW-02 and SEW-05 already packed)", badges: ["E"], done: false },
+          { id: "t15", text: "Basement — tools, exercise equipment, laundry supplies", badges: ["C"], done: false },
+          { id: "t16", text: "Outdoor shed — shovels, rakes, hoses, garden tools", badges: ["C"], done: false },
+          { id: "t17", text: "Bikes — bag or wrap for truck", badges: ["C"], done: false },
+          { id: "t18", text: "Do a full load of laundry", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0504", date: "Mon May 4", name: "Weekday", type: "neutral",
+        tasks: [
+          { id: "t19", text: "Continue basement — remaining storage and large tools", badges: ["C"], done: false },
+          { id: "t20", text: "Backyard items", badges: ["C"], done: false },
+          { id: "t21", text: "My closet (3F) — start with clothes, shoes, bags (1–2 hrs)", badges: ["E"], done: false },
+        ]
+      },
+      {
+        id: "day-0505", date: "Tue May 5", name: "Weekday", type: "neutral",
+        tasks: [
+          { id: "t22", text: "Living room — remaining items except sofa, TV, router", badges: ["C"], done: false },
+          { id: "t23", text: "Identify and stage large furniture for load day", badges: ["C"], done: false },
+          { id: "t24", text: "My closet (3F) — continue/finish (1–2 hrs)", badges: ["E"], done: false },
+        ]
+      },
+      {
+        id: "day-0506", date: "Wed May 6", name: "Weekday", type: "neutral",
+        tasks: [
+          { id: "t25", text: "Disassemble any furniture that can come apart early", badges: ["C"], done: false },
+          { id: "t26", text: "Stage all packed boxes toward living/dining room", badges: ["C"], done: false },
+          { id: "t27", text: "Wrap large furniture in moving blankets", badges: ["C"], done: false },
+          { id: "t28", text: "Cole's office remaining items — harddrives, keyboard, sentimental, frames, design inspo (OFF-03–06; 1–2 hrs)", badges: ["E"], done: false },
+        ]
+      },
+      {
+        id: "day-0507", date: "Thu May 7", name: "Emma off work", type: "neutral",
+        tasks: [
+          { id: "t29", text: "Kitchen — pack down to essentials (1 pot, 1 pan, coffee, plates for 4)", badges: ["B"], done: false },
+          { id: "t30", text: "Full Airtable audit — update statuses, flag gaps", badges: ["B"], done: false },
+          { id: "t31", text: "Backpacks, purses, coats (1F-ENT-01, 02 — still packing)", badges: ["E"], done: false },
+        ]
+      },
+    ]
+  },
+  {
+    label: "May 8–10 — Out of town",
+    days: [
+      {
+        id: "day-trip", date: "Fri–Sun May 8–10", name: "Away", type: "neutral",
+        tasks: [
+          { id: "t32", text: "No packing — rest and recharge", badges: [], done: false },
+          { id: "t33", text: "Return home late Sunday evening", badges: [], done: false },
+        ]
+      }
+    ]
+  },
+  {
+    label: "Week 2 — Final push (May 11–17)",
+    days: [
+      {
+        id: "day-0511", date: "Mon May 11", name: "Weekday", type: "neutral",
+        tasks: [
+          { id: "t34", text: "Full walkthrough — refresh Airtable, identify any gaps", badges: ["C"], done: false },
+          { id: "t35", text: "Pack dog items — crates, food, beds, toys (keep travel set out)", badges: ["C"], done: false },
+          { id: "t36", text: "Any remaining furniture wrapping and staging", badges: ["C"], done: false },
+          { id: "t37", text: "Sewing room final sweep — anything remaining (1–2 hrs)", badges: ["E"], done: false },
+        ]
+      },
+      {
+        id: "day-0512", date: "Tue May 12", name: "Weekday", type: "neutral",
+        tasks: [
+          { id: "t38", text: "Final room-by-room sweep — nothing left except stay-out list", badges: ["C"], done: false },
+          { id: "t39", text: "Stage everything toward front door / driveway", badges: ["C"], done: false },
+          { id: "t40", text: "2F bathroom — pack down to 3-day essentials only (1–2 hrs)", badges: ["E"], done: false },
+        ]
+      },
+      {
+        id: "day-0513", date: "Wed May 13", name: "Weekday", type: "neutral",
+        tasks: [
+          { id: "t41", text: "Any remaining furniture disassembly", badges: ["C"], done: false },
+          { id: "t42", text: "Confirm storage unit access hours for May 21–22", badges: ["C"], done: false },
+          { id: "t43", text: "MachE personal load — start pulling daily-use items together (medicine, laptops, chargers; 1–2 hrs)", badges: ["E"], done: false },
+        ]
+      },
+      {
+        id: "day-0514", date: "Thu May 14", name: "Weekday", type: "neutral",
+        tasks: [
+          { id: "t44", text: "Set aside guest room for parents' arrival tomorrow — bed stays assembled", badges: ["B"], done: false },
+          { id: "t45", text: "Finish MachE bag — clothes, toiletries, dog travel kit (1–2 hrs)", badges: ["E"], done: false },
+        ]
+      },
+      {
+        id: "day-0515", date: "Fri May 15", name: "Parents arrive", type: "important",
+        tasks: [
+          { id: "t46", text: "Parents arrive — guest bed assembled and ready", badges: ["B"], done: false },
+          { id: "t47", text: "Walk parents through convoy plan and overflow list", badges: ["B"], done: false },
+          { id: "t48", text: "Pack any remaining kitchen items — leave bare minimum for 3 days", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0516", date: "Sat May 16", name: "Pre-load", type: "neutral",
+        tasks: [
+          { id: "t49", text: "All four: final pack — nothing left except both beds, router, TV, medicine, cleaning supplies", badges: ["B"], done: false },
+          { id: "t50", text: "Disassemble all remaining furniture except both beds", badges: ["B"], done: false },
+          { id: "t51", text: "Load parents' truck with confirmed overflow items", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0517", date: "Sun May 17", name: "Stage day", type: "neutral",
+        tasks: [
+          { id: "t52", text: "Stage all boxes and wrapped furniture at front door / driveway", badges: ["B"], done: false },
+          { id: "t53", text: "Plan Penske load order: furniture → heavy boxes → medium → fragile on top", badges: ["B"], done: false },
+          { id: "t54", text: "Last night with TV and wifi — pack both Monday morning", badges: ["B"], done: false },
+        ]
+      },
+    ]
+  },
+  {
+    label: "May 18–19 — Loading & departure",
+    days: [
+      {
+        id: "day-0518", date: "Mon May 18", name: "Loading day", type: "critical",
+        tasks: [
+          { id: "t55", text: "Pick up Penske 26ft truck", badges: ["C"], done: false },
+          { id: "t56", text: "Pack router, TV, medicine, cleaning supplies, 2F bathroom last items", badges: ["B"], done: false },
+          { id: "t57", text: "3-person paid crew arrives — load Penske (4 hrs)", badges: ["B"], done: false },
+          { id: "t58", text: "Parents load confirmed overflow into their truck", badges: ["B"], done: false },
+          { id: "t59", text: "Final walkthrough — every room, closet, cabinet, basement, shed, backyard", badges: ["B"], done: false },
+          { id: "t60", text: "Return keys and gate openers to landlord", badges: ["B","admin"], done: false },
+          { id: "t61", text: "Sleep on mattresses at the house overnight", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0519", date: "Tue May 19", name: "Depart Detroit", type: "milestone",
+        tasks: [
+          { id: "t62", text: "Early morning: disassemble both beds, load mattresses into Penske first", badges: ["B"], done: false },
+          { id: "t63", text: "Depart Detroit — target 9am", badges: ["B"], done: false },
+          { id: "t64", text: "Cole: Penske | Emma: MachE + dogs | Parents: their truck", badges: ["B"], done: false },
+          { id: "t65", text: "Drive ~5 hrs to Charleston, WV — check into dog-friendly hotel", badges: ["B"], done: false },
+        ]
+      },
+    ]
+  },
+  {
+    label: "May 20–23 — Arrive & unload",
+    days: [
+      {
+        id: "day-0520", date: "Wed May 20", name: "Arrive NC", type: "milestone",
+        tasks: [
+          { id: "t66", text: "Depart Charleston — ~5.5 hrs to Pittsboro, NC", badges: ["B"], done: false },
+          { id: "t67", text: "Arrive at parents' home in Pittsboro", badges: ["B"], done: false },
+          { id: "t68", text: "Unload personal items from MachE and parents' truck into house", badges: ["B"], done: false },
+          { id: "t69", text: "Rest — Penske parked overnight at parents'", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0521", date: "Thu May 21", name: "Unload day 1", type: "important",
+        tasks: [
+          { id: "t70", text: "All four: unload Penske into U-Haul storage unit, Chapel Hill", badges: ["B"], done: false },
+          { id: "t71", text: "Largest/heaviest items to back of unit; labeled boxes toward front", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0522", date: "Fri May 22", name: "Unload day 2", type: "important",
+        tasks: [
+          { id: "t72", text: "Finish unloading if not done Thursday", badges: ["B"], done: false },
+          { id: "t73", text: "Return moving blankets/pads to truck", badges: ["B"], done: false },
+          { id: "t74", text: "Clean out Penske and document truck condition before return", badges: ["B"], done: false },
+        ]
+      },
+      {
+        id: "day-0523", date: "Sat May 23", name: "Truck due", type: "critical",
+        tasks: [
+          { id: "t75", text: "Return Penske truck — Chapel Hill/Pittsboro location (hard deadline)", badges: ["C","logistics"], done: false },
+          { id: "t76", text: "Move complete! 🎉", badges: ["B"], done: false },
+        ]
+      },
+    ]
+  }
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let phases = [];
+let editMode = false;
+let dragSrcTask = null;
+let dragSrcDayId = null;
+let dragSrcIndex = null;
+let idCounter = 1000;
+
+function uid() { return 't' + (++idCounter) + '_' + Date.now(); }
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (raw) { phases = JSON.parse(raw); return; }
+  } catch(e) {}
+  phases = JSON.parse(JSON.stringify(DEFAULT_PHASES));
+}
+function saveState() {
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(phases)); } catch(e) {}
+}
+
+function findDay(dayId) {
+  for (const ph of phases) for (const d of ph.days) if (d.id === dayId) return d;
+  return null;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function badgeHTML(b) {
+  if (b === 'E') return `<span class="who who-e">E</span>`;
+  if (b === 'C') return `<span class="who who-c">C</span>`;
+  if (b === 'B') return `<span class="who who-b">B</span>`;
+  if (b === 'logistics') return `<span class="tag tag-logistics">logistics</span>`;
+  if (b === 'admin') return `<span class="tag tag-admin">admin</span>`;
+  return '';
+}
+
+function renderAll() {
+  const root = document.getElementById('checklist-root');
+  let html = '';
+  for (const ph of phases) {
+    html += `<div class="phase-header">${ph.label}</div>`;
+    for (const day of ph.days) {
+      const total = day.tasks.length;
+      const done = day.tasks.filter(t => t.done).length;
+      html += `
+      <div class="day ${day.type}" id="${day.id}" data-day-id="${day.id}">
+        <div class="day-header" onclick="toggleDay('${day.id}')">
+          <div class="day-label"><div class="day-date">${day.date}</div><div class="day-name">${day.name}</div></div>
+          <div class="day-summary">${day.tasks.slice(0,3).map(t=>t.text.replace(/[<>]/g,'')).join(', ').slice(0,60)}${day.tasks.length>3?'…':''}</div>
+          <div class="day-progress">${total > 0 ? done+'/'+total : ''}</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="${day.id}"
+          ondragover="onDayDragOver(event,'${day.id}')"
+          ondragleave="onDayDragLeave(event,'${day.id}')"
+          ondrop="onDayDrop(event,'${day.id}')">
+          ${day.tasks.map((t,i) => taskHTML(t, day.id, i)).join('')}
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="${day.id}"
+              onkeydown="handleAddKey(event,'${day.id}')">
+            <select class="add-badge-select" id="badge-select-${day.id}">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('${day.id}')">+ Add</button>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+  root.innerHTML = html;
+  if (editMode) root.classList.add('edit-mode');
+  else root.classList.remove('edit-mode');
+  updateProgress();
+}
+
+function taskHTML(t, dayId, idx) {
+  const badges = (t.badges||[]).map(badgeHTML).join('');
+  return `
+  <div class="task-row" id="tr-${t.id}" data-task-id="${t.id}" data-day-id="${dayId}" data-idx="${idx}"
+    draggable="false"
+    ondragstart="onTaskDragStart(event,'${dayId}','${t.id}',${idx})"
+    ondragend="onTaskDragEnd(event)"
+    ondragover="onTaskDragOver(event,'${dayId}',${idx})"
+    ondragleave="onTaskDragLeave(event)"
+    ondrop="onTaskDrop(event,'${dayId}',${idx})">
+    <div class="drag-handle" onmousedown="enableDrag('tr-${t.id}')" onmouseup="disableDrag('tr-${t.id}')">⠿</div>
+    <div class="task-cb ${t.done?'checked':''}" onclick="toggleTask('${dayId}','${t.id}')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ${t.done?'checked':''}">${escapeHTML(t.text)}${badges ? `<span class="badges">${badges}</span>` : ''}</div>
+      <input class="task-text-input" type="text" value="${escapeAttr(t.text)}"
+        onblur="saveEdit('${dayId}','${t.id}',this)"
+        onkeydown="handleEditKey(event,'${dayId}','${t.id}',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-${t.id}')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('${dayId}','${t.id}')" title="Delete">✕</button>
+    </div>
+  </div>`;
+}
+
+function escapeHTML(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s) { return s.replace(/"/g,'&quot;'); }
+
+// ── TOGGLE / CHECK ────────────────────────────────────────────────────────────
+function toggleDay(dayId) {
+  document.getElementById(dayId).classList.toggle('collapsed');
+}
+
+function toggleTask(dayId, taskId) {
+  const day = findDay(dayId);
+  const t = day.tasks.find(x => x.id === taskId);
+  t.done = !t.done;
+  saveState();
+  // just update the checkbox and text visually without full re-render
+  const cb = document.querySelector(`#tr-${taskId} .task-cb`);
+  const txt = document.querySelector(`#tr-${taskId} .task-text`);
+  cb.classList.toggle('checked', t.done);
+  txt.classList.toggle('checked', t.done);
+  updateProgress();
+}
+
+// ── EDIT MODE ─────────────────────────────────────────────────────────────────
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-toggle-btn');
+  btn.classList.toggle('active', editMode);
+  btn.textContent = editMode ? '✓ Done' : '✏️ Edit';
+  const root = document.getElementById('checklist-root');
+  root.classList.toggle('edit-mode', editMode);
+  // toggle draggable on all task rows
+  document.querySelectorAll('.task-row').forEach(row => {
+    row.draggable = editMode;
+  });
+}
+
+function enableDrag(rowId) { if (editMode) document.getElementById(rowId).draggable = true; }
+function disableDrag(rowId) { /* keep draggable while in edit mode */ }
+
+function startEdit(rowId) {
+  const row = document.getElementById(rowId);
+  row.classList.add('editing');
+  row.querySelector('.task-text-input').focus();
+  row.querySelector('.task-text-input').select();
+}
+
+function saveEdit(dayId, taskId, input) {
+  const val = input.value.trim();
+  if (!val) return;
+  const day = findDay(dayId);
+  const t = day.tasks.find(x => x.id === taskId);
+  t.text = val;
+  saveState();
+  const row = document.getElementById('tr-'+taskId);
+  if (row) {
+    row.classList.remove('editing');
+    const txtEl = row.querySelector('.task-text');
+    const badges = (t.badges||[]).map(badgeHTML).join('');
+    txtEl.innerHTML = escapeHTML(val) + (badges ? `<span class="badges">${badges}</span>` : '');
+  }
+}
+
+function handleEditKey(e, dayId, taskId, input) {
+  if (e.key === 'Enter') { input.blur(); }
+  if (e.key === 'Escape') {
+    const day = findDay(dayId);
+    const t = day.tasks.find(x => x.id === taskId);
+    input.value = t.text;
+    document.getElementById('tr-'+taskId).classList.remove('editing');
+  }
+}
+
+function deleteTask(dayId, taskId) {
+  const day = findDay(dayId);
+  day.tasks = day.tasks.filter(t => t.id !== taskId);
+  saveState();
+  const row = document.getElementById('tr-'+taskId);
+  if (row) row.remove();
+  updateProgress();
+  updateDayProgress(dayId);
+  updateDaySummary(dayId);
+}
+
+function addTask(dayId) {
+  const input = document.querySelector(`.add-task-input[data-day-id="${dayId}"]`);
+  const val = input.value.trim();
+  if (!val) return;
+  const sel = document.getElementById('badge-select-'+dayId);
+  const badge = sel ? sel.value : 'B';
+  const day = findDay(dayId);
+  const newTask = { id: uid(), text: val, badges: badge ? [badge] : [], done: false };
+  day.tasks.push(newTask);
+  saveState();
+  input.value = '';
+  // insert task row before add-task-row
+  const addRow = document.querySelector(`.add-task-row[data-day-id="${dayId}"]`) ||
+    document.querySelector(`[data-day-id="${dayId}"] .add-task-row`);
+  const container = document.querySelector(`.day-tasks[data-day-id="${dayId}"]`);
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = taskHTML(newTask, dayId, day.tasks.length-1);
+  const newRow = tempDiv.firstElementChild;
+  newRow.draggable = editMode;
+  if (addRow && addRow.parentNode === container) {
+    container.insertBefore(newRow, addRow);
+  } else {
+    container.appendChild(newRow);
+  }
+  updateProgress();
+  updateDayProgress(dayId);
+  updateDaySummary(dayId);
+  input.focus();
+}
+
+function handleAddKey(e, dayId) {
+  if (e.key === 'Enter') addTask(dayId);
+}
+
+// ── DRAG AND DROP ─────────────────────────────────────────────────────────────
+let dragOverDay = null;
+
+function onTaskDragStart(e, dayId, taskId, idx) {
+  dragSrcDayId = dayId;
+  dragSrcTask = taskId;
+  dragSrcIndex = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', taskId);
+  // show ghost
+  const ghost = document.getElementById('drag-ghost');
+  const day = findDay(dayId);
+  const t = day.tasks.find(x => x.id === taskId);
+  ghost.textContent = t.text.slice(0,50) + (t.text.length > 50 ? '…' : '');
+  ghost.style.display = 'block';
+  e.dataTransfer.setDragImage(ghost, 0, 0);
+  setTimeout(() => { document.getElementById('tr-'+taskId)?.classList.add('dragging'); }, 0);
+}
+
+function onTaskDragEnd(e) {
+  document.getElementById('drag-ghost').style.display = 'none';
+  document.querySelectorAll('.task-row').forEach(r => {
+    r.classList.remove('dragging','drag-above','drag-below');
+  });
+  document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
+  dragSrcTask = null; dragSrcDayId = null; dragSrcIndex = null; dragOverDay = null;
+}
+
+function onTaskDragOver(e, dayId, idx) {
+  if (!dragSrcTask) return;
+  e.preventDefault(); e.stopPropagation();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.task-row').forEach(r => r.classList.remove('drag-above','drag-below'));
+  document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
+  const row = e.currentTarget;
+  const rect = row.getBoundingClientRect();
+  const mid = rect.top + rect.height / 2;
+  if (e.clientY < mid) row.classList.add('drag-above');
+  else row.classList.add('drag-below');
+}
+
+function onTaskDragLeave(e) {
+  e.currentTarget.classList.remove('drag-above','drag-below');
+}
+
+function onTaskDrop(e, targetDayId, targetIdx) {
+  e.preventDefault(); e.stopPropagation();
+  if (!dragSrcTask) return;
+  const row = e.currentTarget;
+  const rect = row.getBoundingClientRect();
+  const mid = rect.top + rect.height / 2;
+  const dropBefore = e.clientY < mid;
+  moveTask(dragSrcDayId, dragSrcTask, targetDayId, targetIdx, dropBefore);
+  document.querySelectorAll('.task-row').forEach(r => r.classList.remove('drag-above','drag-below','dragging'));
+  document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
+}
+
+function onDayDragOver(e, dayId) {
+  if (!dragSrcTask) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if (dragOverDay !== dayId) {
+    document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
+    document.getElementById(dayId)?.classList.add('drag-over');
+    dragOverDay = dayId;
+  }
+}
+
+function onDayDragLeave(e, dayId) {
+  // only remove if leaving the day entirely
+  const rel = e.relatedTarget;
+  if (!rel || !document.getElementById(dayId)?.contains(rel)) {
+    document.getElementById(dayId)?.classList.remove('drag-over');
+    if (dragOverDay === dayId) dragOverDay = null;
+  }
+}
+
+function onDayDrop(e, targetDayId) {
+  e.preventDefault();
+  if (!dragSrcTask) return;
+  document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
+  const targetDay = findDay(targetDayId);
+  moveTask(dragSrcDayId, dragSrcTask, targetDayId, targetDay.tasks.length, false);
+}
+
+function moveTask(fromDayId, taskId, toDayId, toIdx, before) {
+  const fromDay = findDay(fromDayId);
+  const toDay = findDay(toDayId);
+  const taskIdx = fromDay.tasks.findIndex(t => t.id === taskId);
+  if (taskIdx === -1) return;
+  const [task] = fromDay.tasks.splice(taskIdx, 1);
+
+  let insertAt = toIdx;
+  if (fromDayId === toDayId) {
+    // adjust for removal
+    if (taskIdx < toIdx) insertAt = toIdx - 1;
+  }
+  if (!before && fromDayId === toDayId && insertAt >= toDay.tasks.length) {
+    toDay.tasks.push(task);
+  } else {
+    const pos = before ? insertAt : insertAt + 1;
+    toDay.tasks.splice(Math.max(0, Math.min(pos, toDay.tasks.length)), 0, task);
+  }
+  saveState();
+  renderAll();
+  if (editMode) {
+    toggleEditMode(); toggleEditMode(); // re-apply edit mode classes
+  }
+}
+
+// ── PROGRESS ──────────────────────────────────────────────────────────────────
+function updateProgress() {
+  const all = document.querySelectorAll('.task-cb').length;
+  const done = document.querySelectorAll('.task-cb.checked').length;
+  const pct = all ? Math.round(done/all*100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-count').textContent = done + ' of ' + all + ' tasks complete';
+  // update per-day
+  phases.forEach(ph => ph.days.forEach(d => updateDayProgress(d.id)));
+}
+
+function updateDayProgress(dayId) {
+  const dayEl = document.getElementById(dayId);
+  if (!dayEl) return;
+  const rows = dayEl.querySelectorAll('.task-row');
+  const done = dayEl.querySelectorAll('.task-cb.checked').length;
+  const el = document.getElementById('dprog-'+dayId) || dayEl.querySelector('.day-progress');
+  if (el) el.textContent = rows.length > 0 ? done + '/' + rows.length : '';
+}
+
+function updateDaySummary(dayId) {
+  const day = findDay(dayId);
+  if (!day) return;
+  const dayEl = document.getElementById(dayId);
+  if (!dayEl) return;
+  const summary = dayEl.querySelector('.day-summary');
+  if (summary) {
+    const text = day.tasks.slice(0,3).map(t=>t.text).join(', ').slice(0,60) + (day.tasks.length>3?'…':'');
+    summary.textContent = text;
+  }
+}
+
+function resetAll() {
+  if (!confirm('Reset all checkboxes? (Tasks and edits will be preserved)')) return;
+  phases.forEach(ph => ph.days.forEach(d => d.tasks.forEach(t => { t.done = false; })));
+  saveState();
+  renderAll();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadState();
+renderAll();
+</script>
+</body>
+</html>
