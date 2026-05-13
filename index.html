@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Moving Checklist — Detroit to Pittsboro</title>
@@ -53,12 +51,14 @@
   .tag-logistics { background: var(--coral-light); color: var(--coral); }
   .tag-admin { background: var(--blue-light); color: var(--blue); }
 
-  .top-actions { display: flex; gap: 8px; align-items: center; }
+  .top-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .btn { font-size: 12px; font-family: 'DM Sans', sans-serif; background: none; border: 0.5px solid var(--border-strong); border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: background 0.15s; white-space: nowrap; color: var(--text-secondary); }
   .btn:hover { background: var(--bg); }
   .btn.active { background: var(--text); color: white; border-color: var(--text); }
   .btn-danger { color: var(--red); border-color: rgba(163,45,45,0.3); }
   .btn-danger:hover { background: var(--red-light); }
+  .btn-export { color: var(--green); border-color: rgba(29,158,117,0.4); }
+  .btn-export:hover { background: var(--green-light); }
 
   .phase-header { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-tertiary); font-family: 'DM Mono', monospace; margin: 1.5rem 0 0.5rem; padding: 0 2px; }
 
@@ -83,10 +83,6 @@
 
   .day-tasks { border-top: 0.5px solid var(--border); padding: 4px 0; min-height: 8px; transition: background 0.15s; }
   .day.collapsed .day-tasks { display: none; }
-
-  /* drop indicator */
-  .drop-indicator { height: 2px; background: var(--green); border-radius: 1px; margin: 0 14px; display: none; }
-  .drop-indicator.visible { display: block; }
 
   .task-row {
     display: flex; align-items: flex-start; gap: 10px; padding: 7px 14px;
@@ -134,7 +130,6 @@
 
   .badges { display: inline-flex; gap: 4px; flex-wrap: wrap; margin-left: 6px; vertical-align: middle; }
 
-  /* add task row */
   .add-task-row { display: none; align-items: center; gap: 10px; padding: 7px 14px; border-top: 0.5px solid var(--border); }
   .edit-mode .add-task-row { display: flex; }
   .add-task-input { flex: 1; font-size: 13px; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border-strong); border-radius: 6px; padding: 5px 8px; background: var(--bg); outline: none; color: var(--text); }
@@ -143,8 +138,11 @@
   .add-btn { font-size: 12px; font-family: 'DM Sans', sans-serif; background: var(--green); color: white; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
   .add-btn:hover { opacity: 0.9; }
 
-  /* drag ghost */
   #drag-ghost { position: fixed; pointer-events: none; z-index: 9999; background: white; border: 1px solid var(--green); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: none; color: var(--text); }
+
+  /* export toast */
+  #export-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: white; font-size: 13px; font-family: 'DM Sans', sans-serif; padding: 10px 18px; border-radius: 8px; opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 9998; }
+  #export-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -157,8 +155,8 @@
   <div class="top-bar">
     <div class="progress-wrap">
       <div class="progress-label">Overall progress</div>
-      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
-      <div class="progress-count" id="prog-count">0 of 0 tasks complete</div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width: 48%;"></div></div>
+      <div class="progress-count" id="prog-count">35 of 73 tasks complete</div>
     </div>
     <div class="legend">
       <span class="who who-e">E Emma</span>
@@ -169,19 +167,1337 @@
     </div>
     <div class="top-actions">
       <button class="btn" id="edit-toggle-btn" onclick="toggleEditMode()">✏️ Edit</button>
+      <button class="btn btn-export" onclick="exportHTML()">⬇ Export</button>
       <button class="btn btn-danger" onclick="resetAll()">Reset</button>
     </div>
   </div>
 
-  <div id="checklist-root"></div>
+  <div id="checklist-root"><div class="phase-header">Anytime — Admin &amp; logistics</div>
+      <div class="day important" id="day-admin" data-day-id="day-admin">
+        <div class="day-header" onclick="toggleDay('day-admin')">
+          <div class="day-label"><div class="day-date">Do soon</div><div class="day-name">Background</div></div>
+          <div class="day-summary">USPS mail forward to parents' address — do online, 5 min, Co…</div>
+          <div class="day-progress">8/9</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-admin" ondragover="onDayDragOver(event,'day-admin')" ondragleave="onDayDragLeave(event,'day-admin')" ondrop="onDayDrop(event,'day-admin')">
+          
+  <div class="task-row" id="tr-t1" data-task-id="t1" data-day-id="day-admin" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t1',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1')" onmouseup="disableDrag('tr-t1')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t1')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">USPS mail forward to parents' address — do online, 5 min<span class="badges"><span class="who who-b">B</span><span class="tag tag-admin">admin</span></span></div>
+      <input class="task-text-input" type="text" value="USPS mail forward to parents' address — do online, 5 min" onblur="saveEdit('day-admin','t1',this)" onkeydown="handleEditKey(event,'day-admin','t1',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t1')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t4" data-task-id="t4" data-day-id="day-admin" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t4',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t4')" onmouseup="disableDrag('tr-t4')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t4')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Confirm Penske reservation for May 18<span class="badges"><span class="who who-b">B</span><span class="tag tag-logistics">logistics</span></span></div>
+      <input class="task-text-input" type="text" value="Confirm Penske reservation for May 18" onblur="saveEdit('day-admin','t4',this)" onkeydown="handleEditKey(event,'day-admin','t4',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t4')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t4')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t8" data-task-id="t8" data-day-id="day-admin" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t8',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t8')" onmouseup="disableDrag('tr-t8')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t8')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Confirm paid labor crew for May 18 afternoon<span class="badges"><span class="who who-b">B</span><span class="tag tag-logistics">logistics</span></span></div>
+      <input class="task-text-input" type="text" value="Confirm paid labor crew for May 18 afternoon" onblur="saveEdit('day-admin','t8',this)" onkeydown="handleEditKey(event,'day-admin','t8',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t8')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t8')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t9" data-task-id="t9" data-day-id="day-admin" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t9',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t9')" onmouseup="disableDrag('tr-t9')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t9')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Coordinate landlord walkthrough and key/gate opener return date<span class="badges"><span class="who who-b">B</span><span class="tag tag-admin">admin</span></span></div>
+      <input class="task-text-input" type="text" value="Coordinate landlord walkthrough and key/gate opener return date" onblur="saveEdit('day-admin','t9',this)" onkeydown="handleEditKey(event,'day-admin','t9',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t9')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t9')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t10" data-task-id="t10" data-day-id="day-admin" data-idx="4" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t10',4)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',4)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',4)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t10')" onmouseup="disableDrag('tr-t10')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t10')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Check Penske fuel policy — prepay or fill tank before return<span class="badges"><span class="who who-b">B</span><span class="tag tag-logistics">logistics</span></span></div>
+      <input class="task-text-input" type="text" value="Check Penske fuel policy — prepay or fill tank before return" onblur="saveEdit('day-admin','t10',this)" onkeydown="handleEditKey(event,'day-admin','t10',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t10')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t10')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t11" data-task-id="t11" data-day-id="day-admin" data-idx="5" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t11',5)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',5)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',5)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t11')" onmouseup="disableDrag('tr-t11')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t11')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Confirm parents have space to park 26ft Penske overnight May 20<span class="badges"><span class="who who-b">B</span><span class="tag tag-logistics">logistics</span></span></div>
+      <input class="task-text-input" type="text" value="Confirm parents have space to park 26ft Penske overnight May 20" onblur="saveEdit('day-admin','t11',this)" onkeydown="handleEditKey(event,'day-admin','t11',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t11')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t11')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t2" data-task-id="t2" data-day-id="day-admin" data-idx="6" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t2',6)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',6)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',6)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t2')" onmouseup="disableDrag('tr-t2')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t2')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Call car insurance — update address and confirm cross-state coverage for the move<span class="badges"><span class="who who-b">B</span><span class="tag tag-admin">admin</span></span></div>
+      <input class="task-text-input" type="text" value="Call car insurance — update address and confirm cross-state coverage for the move" onblur="saveEdit('day-admin','t2',this)" onkeydown="handleEditKey(event,'day-admin','t2',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t2')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t2')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t5" data-task-id="t5" data-day-id="day-admin" data-idx="7" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t5',7)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',7)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',7)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t5')" onmouseup="disableDrag('tr-t5')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-admin','t5')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Book dog-friendly hotel in Charleston, WV for May 19 night<span class="badges"><span class="who who-b">B</span><span class="tag tag-logistics">logistics</span></span></div>
+      <input class="task-text-input" type="text" value="Book dog-friendly hotel in Charleston, WV for May 19 night" onblur="saveEdit('day-admin','t5',this)" onkeydown="handleEditKey(event,'day-admin','t5',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t5')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t5')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t3" data-task-id="t3" data-day-id="day-admin" data-idx="8" draggable="false" ondragstart="onTaskDragStart(event,'day-admin','t3',8)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-admin',8)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-admin',8)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t3')" onmouseup="disableDrag('tr-t3')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-admin','t3')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Complete U-Haul storage move-in online (Reservation #782059-00110683) — get unit # and access code<span class="badges"><span class="who who-b">B</span><span class="tag tag-logistics">logistics</span></span></div>
+      <input class="task-text-input" type="text" value="Complete U-Haul storage move-in online (Reservation #782059-00110683) — get unit # and access code" onblur="saveEdit('day-admin','t3',this)" onkeydown="handleEditKey(event,'day-admin','t3',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t3')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-admin','t3')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-admin" onkeydown="handleAddKey(event,'day-admin')">
+            <select class="add-badge-select" id="badge-select-day-admin">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-admin')">+ Add</button>
+          </div>
+        </div>
+      </div><div class="phase-header">Week 1 — Packing push (May 2–7)</div>
+      <div class="day important" id="day-0502" data-day-id="day-0502">
+        <div class="day-header" onclick="toggleDay('day-0502')">
+          <div class="day-label"><div class="day-date">Sat May 2</div><div class="day-name">Today · ~3 hrs</div></div>
+          <div class="day-summary">✓ Storage unit booked (U-Haul 10×15×8, move-in May 21), Mast</div>
+          <div class="day-progress">2/2</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0502" ondragover="onDayDragOver(event,'day-0502')" ondragleave="onDayDragLeave(event,'day-0502')" ondrop="onDayDrop(event,'day-0502')">
+          
+  <div class="task-row" id="tr-t12" data-task-id="t12" data-day-id="day-0502" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0502','t12',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0502',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0502',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t12')" onmouseup="disableDrag('tr-t12')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0502','t12')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">✓ Storage unit booked (U-Haul 10×15×8, move-in May 21)<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="✓ Storage unit booked (U-Haul 10×15×8, move-in May 21)" onblur="saveEdit('day-0502','t12',this)" onkeydown="handleEditKey(event,'day-0502','t12',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t12')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0502','t12')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t13" data-task-id="t13" data-day-id="day-0502" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0502','t13',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0502',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0502',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t13')" onmouseup="disableDrag('tr-t13')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0502','t13')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Master bedroom — Cole's closet, books, decor, non-travel clothes<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Master bedroom — Cole's closet, books, decor, non-travel clothes" onblur="saveEdit('day-0502','t13',this)" onkeydown="handleEditKey(event,'day-0502','t13',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t13')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0502','t13')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0502" onkeydown="handleAddKey(event,'day-0502')">
+            <select class="add-badge-select" id="badge-select-day-0502">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0502')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0503" data-day-id="day-0503">
+        <div class="day-header" onclick="toggleDay('day-0503')">
+          <div class="day-label"><div class="day-date">Sun May 3</div><div class="day-name">Full day</div></div>
+          <div class="day-summary">Basement — tools, exercise equipment, laundry supplies, Cole</div>
+          <div class="day-progress">3/3</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0503" ondragover="onDayDragOver(event,'day-0503')" ondragleave="onDayDragLeave(event,'day-0503')" ondrop="onDayDrop(event,'day-0503')">
+          
+  <div class="task-row" id="tr-t15" data-task-id="t15" data-day-id="day-0503" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0503','t15',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0503',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0503',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t15')" onmouseup="disableDrag('tr-t15')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0503','t15')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Basement — tools, exercise equipment, laundry supplies<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Basement — tools, exercise equipment, laundry supplies" onblur="saveEdit('day-0503','t15',this)" onkeydown="handleEditKey(event,'day-0503','t15',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t15')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0503','t15')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t28" data-task-id="t28" data-day-id="day-0503" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0503','t28',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0503',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0503',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t28')" onmouseup="disableDrag('tr-t28')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0503','t28')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Cole's office remaining items — harddrives, keyboard, sentimental, frames, design inspo (OFF-03–06; 1–2 hrs)<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Cole's office remaining items — harddrives, keyboard, sentimental, frames, design inspo (OFF-03–06; 1–2 hrs)" onblur="saveEdit('day-0503','t28',this)" onkeydown="handleEditKey(event,'day-0503','t28',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t28')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0503','t28')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1001_1777843661323" data-task-id="t1001_1777843661323" data-day-id="day-0503" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0503','t1001_1777843661323',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0503',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0503',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1001_1777843661323')" onmouseup="disableDrag('tr-t1001_1777843661323')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0503','t1001_1777843661323')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Finish packing spare room (2F) desk items<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Finish packing spare room (2F) desk items" onblur="saveEdit('day-0503','t1001_1777843661323',this)" onkeydown="handleEditKey(event,'day-0503','t1001_1777843661323',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1001_1777843661323')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0503','t1001_1777843661323')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0503" onkeydown="handleAddKey(event,'day-0503')">
+            <select class="add-badge-select" id="badge-select-day-0503">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0503')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0504" data-day-id="day-0504">
+        <div class="day-header" onclick="toggleDay('day-0504')">
+          <div class="day-label"><div class="day-date">Mon May 4</div><div class="day-name">Weekday</div></div>
+          <div class="day-summary">Continue basement — remaining storage and large tools, Emma'</div>
+          <div class="day-progress">3/3</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0504" ondragover="onDayDragOver(event,'day-0504')" ondragleave="onDayDragLeave(event,'day-0504')" ondrop="onDayDrop(event,'day-0504')">
+          
+  <div class="task-row" id="tr-t19" data-task-id="t19" data-day-id="day-0504" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0504','t19',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0504',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0504',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t19')" onmouseup="disableDrag('tr-t19')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0504','t19')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Continue basement — remaining storage and large tools<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Continue basement — remaining storage and large tools" onblur="saveEdit('day-0504','t19',this)" onkeydown="handleEditKey(event,'day-0504','t19',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t19')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0504','t19')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t21" data-task-id="t21" data-day-id="day-0504" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0504','t21',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0504',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0504',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t21')" onmouseup="disableDrag('tr-t21')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0504','t21')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Emma's closet (3F) — start with clothes, shoes, bags (1–2 hrs)<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Emma's closet (3F) — start with clothes, shoes, bags (1–2 hrs)" onblur="saveEdit('day-0504','t21',this)" onkeydown="handleEditKey(event,'day-0504','t21',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t21')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0504','t21')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t30" data-task-id="t30" data-day-id="day-0504" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0504','t30',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0504',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0504',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t30')" onmouseup="disableDrag('tr-t30')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0504','t30')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Full Airtable audit — update statuses, flag gaps<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Full Airtable audit — update statuses, flag gaps" onblur="saveEdit('day-0504','t30',this)" onkeydown="handleEditKey(event,'day-0504','t30',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t30')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0504','t30')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0504" onkeydown="handleAddKey(event,'day-0504')">
+            <select class="add-badge-select" id="badge-select-day-0504">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0504')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0505" data-day-id="day-0505">
+        <div class="day-header" onclick="toggleDay('day-0505')">
+          <div class="day-label"><div class="day-date">Tue May 5</div><div class="day-name">Weekday</div></div>
+          <div class="day-summary">Continue basement — remaining storage and large tools, Disas</div>
+          <div class="day-progress">3/3</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0505" ondragover="onDayDragOver(event,'day-0505')" ondragleave="onDayDragLeave(event,'day-0505')" ondrop="onDayDrop(event,'day-0505')">
+          
+  <div class="task-row" id="tr-t1005_1778111556342" data-task-id="t1005_1778111556342" data-day-id="day-0505" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0505','t1005_1778111556342',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0505',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0505',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1005_1778111556342')" onmouseup="disableDrag('tr-t1005_1778111556342')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0505','t1005_1778111556342')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Continue basement — remaining storage and large tools<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Continue basement — remaining storage and large tools" onblur="saveEdit('day-0505','t1005_1778111556342',this)" onkeydown="handleEditKey(event,'day-0505','t1005_1778111556342',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1005_1778111556342')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0505','t1005_1778111556342')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t25" data-task-id="t25" data-day-id="day-0505" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0505','t25',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0505',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0505',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t25')" onmouseup="disableDrag('tr-t25')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0505','t25')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Disassemble any furniture that can come apart early<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Disassemble any furniture that can come apart early" onblur="saveEdit('day-0505','t25',this)" onkeydown="handleEditKey(event,'day-0505','t25',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t25')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0505','t25')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t14" data-task-id="t14" data-day-id="day-0505" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0505','t14',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0505',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0505',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t14')" onmouseup="disableDrag('tr-t14')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0505','t14')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Sewing room (3F) — SEW-01, 03, 04, 06 (SEW-02 and SEW-05 already packed)<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Sewing room (3F) — SEW-01, 03, 04, 06 (SEW-02 and SEW-05 already packed)" onblur="saveEdit('day-0505','t14',this)" onkeydown="handleEditKey(event,'day-0505','t14',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t14')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0505','t14')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0505" onkeydown="handleAddKey(event,'day-0505')">
+            <select class="add-badge-select" id="badge-select-day-0505">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0505')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0506" data-day-id="day-0506">
+        <div class="day-header" onclick="toggleDay('day-0506')">
+          <div class="day-label"><div class="day-date">Wed May 6</div><div class="day-name">Weekday</div></div>
+          <div class="day-summary">Do a full load of laundry, Sewing room final sweep — anythin</div>
+          <div class="day-progress">3/3</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0506" ondragover="onDayDragOver(event,'day-0506')" ondragleave="onDayDragLeave(event,'day-0506')" ondrop="onDayDrop(event,'day-0506')">
+          
+  <div class="task-row" id="tr-t18" data-task-id="t18" data-day-id="day-0506" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0506','t18',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0506',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0506',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t18')" onmouseup="disableDrag('tr-t18')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0506','t18')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Do a full load of laundry<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Do a full load of laundry" onblur="saveEdit('day-0506','t18',this)" onkeydown="handleEditKey(event,'day-0506','t18',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t18')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0506','t18')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t37" data-task-id="t37" data-day-id="day-0506" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0506','t37',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0506',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0506',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t37')" onmouseup="disableDrag('tr-t37')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0506','t37')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Sewing room final sweep — anything remaining (1–2 hrs)<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Sewing room final sweep — anything remaining (1–2 hrs)" onblur="saveEdit('day-0506','t37',this)" onkeydown="handleEditKey(event,'day-0506','t37',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t37')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0506','t37')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1006_1778111693353" data-task-id="t1006_1778111693353" data-day-id="day-0506" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0506','t1006_1778111693353',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0506',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0506',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1006_1778111693353')" onmouseup="disableDrag('tr-t1006_1778111693353')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0506','t1006_1778111693353')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Continue basement<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Continue basement" onblur="saveEdit('day-0506','t1006_1778111693353',this)" onkeydown="handleEditKey(event,'day-0506','t1006_1778111693353',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1006_1778111693353')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0506','t1006_1778111693353')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0506" onkeydown="handleAddKey(event,'day-0506')">
+            <select class="add-badge-select" id="badge-select-day-0506">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0506')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0507" data-day-id="day-0507">
+        <div class="day-header" onclick="toggleDay('day-0507')">
+          <div class="day-label"><div class="day-date">Thu May 7</div><div class="day-name">Emma off work</div></div>
+          <div class="day-summary">Kitchen — pack down to essentials, Stage all packed boxes to</div>
+          <div class="day-progress">2/2</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0507" ondragover="onDayDragOver(event,'day-0507')" ondragleave="onDayDragLeave(event,'day-0507')" ondrop="onDayDrop(event,'day-0507')">
+          
+  <div class="task-row" id="tr-t29" data-task-id="t29" data-day-id="day-0507" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0507','t29',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0507',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0507',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t29')" onmouseup="disableDrag('tr-t29')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0507','t29')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Kitchen — pack down to essentials<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Kitchen — pack down to essentials" onblur="saveEdit('day-0507','t29',this)" onkeydown="handleEditKey(event,'day-0507','t29',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t29')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0507','t29')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1004_1777843916028" data-task-id="t1004_1777843916028" data-day-id="day-0507" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0507','t1004_1777843916028',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0507',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0507',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1004_1777843916028')" onmouseup="disableDrag('tr-t1004_1777843916028')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0507','t1004_1777843916028')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Stage all packed boxes toward living/dining room<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Stage all packed boxes toward living/dining room" onblur="saveEdit('day-0507','t1004_1777843916028',this)" onkeydown="handleEditKey(event,'day-0507','t1004_1777843916028',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1004_1777843916028')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0507','t1004_1777843916028')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0507" onkeydown="handleAddKey(event,'day-0507')">
+            <select class="add-badge-select" id="badge-select-day-0507">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0507')">+ Add</button>
+          </div>
+        </div>
+      </div><div class="phase-header">May 8–10 — Out of town</div>
+      <div class="day neutral" id="day-trip" data-day-id="day-trip">
+        <div class="day-header" onclick="toggleDay('day-trip')">
+          <div class="day-label"><div class="day-date">Fri–Sun May 8–10</div><div class="day-name">Away</div></div>
+          <div class="day-summary">No packing — rest and recharge, Return home late Sunday even</div>
+          <div class="day-progress">2/2</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-trip" ondragover="onDayDragOver(event,'day-trip')" ondragleave="onDayDragLeave(event,'day-trip')" ondrop="onDayDrop(event,'day-trip')">
+          
+  <div class="task-row" id="tr-t32" data-task-id="t32" data-day-id="day-trip" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-trip','t32',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-trip',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-trip',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t32')" onmouseup="disableDrag('tr-t32')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-trip','t32')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">No packing — rest and recharge</div>
+      <input class="task-text-input" type="text" value="No packing — rest and recharge" onblur="saveEdit('day-trip','t32',this)" onkeydown="handleEditKey(event,'day-trip','t32',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t32')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-trip','t32')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t33" data-task-id="t33" data-day-id="day-trip" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-trip','t33',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-trip',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-trip',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t33')" onmouseup="disableDrag('tr-t33')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-trip','t33')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Return home late Sunday evening</div>
+      <input class="task-text-input" type="text" value="Return home late Sunday evening" onblur="saveEdit('day-trip','t33',this)" onkeydown="handleEditKey(event,'day-trip','t33',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t33')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-trip','t33')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-trip" onkeydown="handleAddKey(event,'day-trip')">
+            <select class="add-badge-select" id="badge-select-day-trip">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-trip')">+ Add</button>
+          </div>
+        </div>
+      </div><div class="phase-header">Week 2 — Final push (May 11–17)</div>
+      <div class="day neutral" id="day-0511" data-day-id="day-0511">
+        <div class="day-header" onclick="toggleDay('day-0511')">
+          <div class="day-label"><div class="day-date">Mon May 11</div><div class="day-name">Weekday</div></div>
+          <div class="day-summary">Emma's Closet, Continue Kitchen, Living room — remaining ite…</div>
+          <div class="day-progress">4/4</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0511" ondragover="onDayDragOver(event,'day-0511')" ondragleave="onDayDragLeave(event,'day-0511')" ondrop="onDayDrop(event,'day-0511')">
+          
+  <div class="task-row" id="tr-t1013_1778420996622" data-task-id="t1013_1778420996622" data-day-id="day-0511" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0511','t1013_1778420996622',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0511',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0511',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1013_1778420996622')" onmouseup="disableDrag('tr-t1013_1778420996622')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0511','t1013_1778420996622')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Emma's Closet<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Emma's Closet" onblur="saveEdit('day-0511','t1013_1778420996622',this)" onkeydown="handleEditKey(event,'day-0511','t1013_1778420996622',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1013_1778420996622')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0511','t1013_1778420996622')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1008_1778112117160" data-task-id="t1008_1778112117160" data-day-id="day-0511" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0511','t1008_1778112117160',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0511',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0511',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1008_1778112117160')" onmouseup="disableDrag('tr-t1008_1778112117160')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0511','t1008_1778112117160')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Continue Kitchen<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Continue Kitchen" onblur="saveEdit('day-0511','t1008_1778112117160',this)" onkeydown="handleEditKey(event,'day-0511','t1008_1778112117160',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1008_1778112117160')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0511','t1008_1778112117160')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t22" data-task-id="t22" data-day-id="day-0511" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0511','t22',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0511',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0511',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t22')" onmouseup="disableDrag('tr-t22')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0511','t22')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Living room — remaining items except sofa, TV, router<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Living room — remaining items except sofa, TV, router" onblur="saveEdit('day-0511','t22',this)" onkeydown="handleEditKey(event,'day-0511','t22',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t22')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0511','t22')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1003_1777843871137" data-task-id="t1003_1777843871137" data-day-id="day-0511" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-0511','t1003_1777843871137',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0511',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0511',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1003_1777843871137')" onmouseup="disableDrag('tr-t1003_1777843871137')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0511','t1003_1777843871137')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Finish packing non-essential entryway items<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Finish packing non-essential entryway items" onblur="saveEdit('day-0511','t1003_1777843871137',this)" onkeydown="handleEditKey(event,'day-0511','t1003_1777843871137',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1003_1777843871137')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0511','t1003_1777843871137')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0511" onkeydown="handleAddKey(event,'day-0511')">
+            <select class="add-badge-select" id="badge-select-day-0511">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0511')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0512" data-day-id="day-0512">
+        <div class="day-header" onclick="toggleDay('day-0512')">
+          <div class="day-label"><div class="day-date">Tue May 12</div><div class="day-name">Weekday</div></div>
+          <div class="day-summary">Pack any remaining kitchen items — leave bare minimum for 3 …</div>
+          <div class="day-progress">5/5</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0512" ondragover="onDayDragOver(event,'day-0512')" ondragleave="onDayDragLeave(event,'day-0512')" ondrop="onDayDrop(event,'day-0512')">
+          
+  <div class="task-row" id="tr-t48" data-task-id="t48" data-day-id="day-0512" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0512','t48',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0512',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0512',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t48')" onmouseup="disableDrag('tr-t48')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0512','t48')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Pack any remaining kitchen items — leave bare minimum for 3 days<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Pack any remaining kitchen items — leave bare minimum for 3 days" onblur="saveEdit('day-0512','t48',this)" onkeydown="handleEditKey(event,'day-0512','t48',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t48')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0512','t48')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t23" data-task-id="t23" data-day-id="day-0512" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0512','t23',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0512',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0512',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t23')" onmouseup="disableDrag('tr-t23')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0512','t23')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Identify and stage large furniture for load day<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Identify and stage large furniture for load day" onblur="saveEdit('day-0512','t23',this)" onkeydown="handleEditKey(event,'day-0512','t23',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t23')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0512','t23')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1011_1778112206156" data-task-id="t1011_1778112206156" data-day-id="day-0512" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0512','t1011_1778112206156',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0512',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0512',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1011_1778112206156')" onmouseup="disableDrag('tr-t1011_1778112206156')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0512','t1011_1778112206156')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Stage everything on first and second floor<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Stage everything on first and second floor" onblur="saveEdit('day-0512','t1011_1778112206156',this)" onkeydown="handleEditKey(event,'day-0512','t1011_1778112206156',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1011_1778112206156')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0512','t1011_1778112206156')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t35" data-task-id="t35" data-day-id="day-0512" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-0512','t35',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0512',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0512',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t35')" onmouseup="disableDrag('tr-t35')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0512','t35')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">Pack dog items — crates, food, beds, toys (keep travel set out)<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Pack dog items — crates, food, beds, toys (keep travel set out)" onblur="saveEdit('day-0512','t35',this)" onkeydown="handleEditKey(event,'day-0512','t35',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t35')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0512','t35')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1010_1778112184739" data-task-id="t1010_1778112184739" data-day-id="day-0512" data-idx="4" draggable="false" ondragstart="onTaskDragStart(event,'day-0512','t1010_1778112184739',4)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0512',4)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0512',4)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1010_1778112184739')" onmouseup="disableDrag('tr-t1010_1778112184739')">⠿</div>
+    <div class="task-cb checked" onclick="toggleTask('day-0512','t1010_1778112184739')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text checked">MachE personal load — start pulling daily-use items together (medicine, laptops, chargers; 1–2 hrs)<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="MachE personal load — start pulling daily-use items together (medicine, laptops, chargers; 1–2 hrs)" onblur="saveEdit('day-0512','t1010_1778112184739',this)" onkeydown="handleEditKey(event,'day-0512','t1010_1778112184739',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1010_1778112184739')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0512','t1010_1778112184739')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0512" onkeydown="handleAddKey(event,'day-0512')">
+            <select class="add-badge-select" id="badge-select-day-0512">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0512')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0513" data-day-id="day-0513">
+        <div class="day-header" onclick="toggleDay('day-0513')">
+          <div class="day-label"><div class="day-date">Wed May 13</div><div class="day-name">Weekday</div></div>
+          <div class="day-summary">Finish closet, 2F bathroom — pack down to 3-day essentials o…</div>
+          <div class="day-progress">0/5</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0513" ondragover="onDayDragOver(event,'day-0513')" ondragleave="onDayDragLeave(event,'day-0513')" ondrop="onDayDrop(event,'day-0513')">
+          
+  <div class="task-row" id="tr-t1015_1778542896621" data-task-id="t1015_1778542896621" data-day-id="day-0513" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0513','t1015_1778542896621',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0513',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0513',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1015_1778542896621')" onmouseup="disableDrag('tr-t1015_1778542896621')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0513','t1015_1778542896621')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Finish closet<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Finish closet" onblur="saveEdit('day-0513','t1015_1778542896621',this)" onkeydown="handleEditKey(event,'day-0513','t1015_1778542896621',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1015_1778542896621')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0513','t1015_1778542896621')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t40" data-task-id="t40" data-day-id="day-0513" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0513','t40',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0513',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0513',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t40')" onmouseup="disableDrag('tr-t40')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0513','t40')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">2F bathroom — pack down to 3-day essentials only (1–2 hrs)<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="2F bathroom — pack down to 3-day essentials only (1–2 hrs)" onblur="saveEdit('day-0513','t40',this)" onkeydown="handleEditKey(event,'day-0513','t40',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t40')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0513','t40')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t16" data-task-id="t16" data-day-id="day-0513" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0513','t16',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0513',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0513',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t16')" onmouseup="disableDrag('tr-t16')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0513','t16')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Outdoor shed — shovels, rakes, hoses, garden tools<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Outdoor shed — shovels, rakes, hoses, garden tools" onblur="saveEdit('day-0513','t16',this)" onkeydown="handleEditKey(event,'day-0513','t16',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t16')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0513','t16')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t41" data-task-id="t41" data-day-id="day-0513" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-0513','t41',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0513',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0513',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t41')" onmouseup="disableDrag('tr-t41')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0513','t41')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Any remaining furniture disassembly<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Any remaining furniture disassembly" onblur="saveEdit('day-0513','t41',this)" onkeydown="handleEditKey(event,'day-0513','t41',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t41')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0513','t41')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1009_1778112175414" data-task-id="t1009_1778112175414" data-day-id="day-0513" data-idx="4" draggable="false" ondragstart="onTaskDragStart(event,'day-0513','t1009_1778112175414',4)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0513',4)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0513',4)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1009_1778112175414')" onmouseup="disableDrag('tr-t1009_1778112175414')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0513','t1009_1778112175414')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Confirm storage unit access hours for May 21–22<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Confirm storage unit access hours for May 21–22" onblur="saveEdit('day-0513','t1009_1778112175414',this)" onkeydown="handleEditKey(event,'day-0513','t1009_1778112175414',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1009_1778112175414')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0513','t1009_1778112175414')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0513" onkeydown="handleAddKey(event,'day-0513')">
+            <select class="add-badge-select" id="badge-select-day-0513">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0513')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0514" data-day-id="day-0514">
+        <div class="day-header" onclick="toggleDay('day-0514')">
+          <div class="day-label"><div class="day-date">Thu May 14</div><div class="day-name">Weekday</div></div>
+          <div class="day-summary">Full walkthrough — refresh Airtable, identify any gaps, Set </div>
+          <div class="day-progress">0/3</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0514" ondragover="onDayDragOver(event,'day-0514')" ondragleave="onDayDragLeave(event,'day-0514')" ondrop="onDayDrop(event,'day-0514')">
+          
+  <div class="task-row" id="tr-t1002_1777843817454" data-task-id="t1002_1777843817454" data-day-id="day-0514" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0514','t1002_1777843817454',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0514',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0514',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1002_1777843817454')" onmouseup="disableDrag('tr-t1002_1777843817454')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0514','t1002_1777843817454')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Full walkthrough — refresh Airtable, identify any gaps<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Full walkthrough — refresh Airtable, identify any gaps" onblur="saveEdit('day-0514','t1002_1777843817454',this)" onkeydown="handleEditKey(event,'day-0514','t1002_1777843817454',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1002_1777843817454')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0514','t1002_1777843817454')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t44" data-task-id="t44" data-day-id="day-0514" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0514','t44',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0514',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0514',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t44')" onmouseup="disableDrag('tr-t44')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0514','t44')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Set aside guest room for parents' arrival tomorrow — bed stays assembled<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Set aside guest room for parents' arrival tomorrow — bed stays assembled" onblur="saveEdit('day-0514','t44',this)" onkeydown="handleEditKey(event,'day-0514','t44',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t44')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0514','t44')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t45" data-task-id="t45" data-day-id="day-0514" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0514','t45',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0514',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0514',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t45')" onmouseup="disableDrag('tr-t45')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0514','t45')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Finish MachE bag — clothes, toiletries, dog travel kit (1–2 hrs)<span class="badges"><span class="who who-e">E</span></span></div>
+      <input class="task-text-input" type="text" value="Finish MachE bag — clothes, toiletries, dog travel kit (1–2 hrs)" onblur="saveEdit('day-0514','t45',this)" onkeydown="handleEditKey(event,'day-0514','t45',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t45')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0514','t45')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0514" onkeydown="handleAddKey(event,'day-0514')">
+            <select class="add-badge-select" id="badge-select-day-0514">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0514')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day important" id="day-0515" data-day-id="day-0515">
+        <div class="day-header" onclick="toggleDay('day-0515')">
+          <div class="day-label"><div class="day-date">Fri May 15</div><div class="day-name">Parents arrive</div></div>
+          <div class="day-summary">Parents arrive — guest bed assembled and ready, Walk parents</div>
+          <div class="day-progress">0/2</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0515" ondragover="onDayDragOver(event,'day-0515')" ondragleave="onDayDragLeave(event,'day-0515')" ondrop="onDayDrop(event,'day-0515')">
+          
+  <div class="task-row" id="tr-t46" data-task-id="t46" data-day-id="day-0515" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0515','t46',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0515',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0515',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t46')" onmouseup="disableDrag('tr-t46')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0515','t46')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Parents arrive — guest bed assembled and ready<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Parents arrive — guest bed assembled and ready" onblur="saveEdit('day-0515','t46',this)" onkeydown="handleEditKey(event,'day-0515','t46',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t46')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0515','t46')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t47" data-task-id="t47" data-day-id="day-0515" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0515','t47',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0515',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0515',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t47')" onmouseup="disableDrag('tr-t47')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0515','t47')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Walk parents through convoy plan and overflow list<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Walk parents through convoy plan and overflow list" onblur="saveEdit('day-0515','t47',this)" onkeydown="handleEditKey(event,'day-0515','t47',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t47')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0515','t47')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0515" onkeydown="handleAddKey(event,'day-0515')">
+            <select class="add-badge-select" id="badge-select-day-0515">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0515')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0516" data-day-id="day-0516">
+        <div class="day-header" onclick="toggleDay('day-0516')">
+          <div class="day-label"><div class="day-date">Sat May 16</div><div class="day-name">Pre-load</div></div>
+          <div class="day-summary">Get a van and do a large dump/donation run, All four: final </div>
+          <div class="day-progress">0/3</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0516" ondragover="onDayDragOver(event,'day-0516')" ondragleave="onDayDragLeave(event,'day-0516')" ondrop="onDayDrop(event,'day-0516')">
+          
+  <div class="task-row" id="tr-t1007_1778111751499" data-task-id="t1007_1778111751499" data-day-id="day-0516" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0516','t1007_1778111751499',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0516',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0516',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1007_1778111751499')" onmouseup="disableDrag('tr-t1007_1778111751499')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0516','t1007_1778111751499')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Get a van and do a large dump/donation run<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Get a van and do a large dump/donation run" onblur="saveEdit('day-0516','t1007_1778111751499',this)" onkeydown="handleEditKey(event,'day-0516','t1007_1778111751499',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1007_1778111751499')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0516','t1007_1778111751499')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t49" data-task-id="t49" data-day-id="day-0516" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0516','t49',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0516',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0516',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t49')" onmouseup="disableDrag('tr-t49')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0516','t49')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">All four: final pack — nothing left except both beds, router, TV, medicine, cleaning supplies<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="All four: final pack — nothing left except both beds, router, TV, medicine, cleaning supplies" onblur="saveEdit('day-0516','t49',this)" onkeydown="handleEditKey(event,'day-0516','t49',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t49')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0516','t49')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t50" data-task-id="t50" data-day-id="day-0516" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0516','t50',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0516',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0516',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t50')" onmouseup="disableDrag('tr-t50')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0516','t50')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Disassemble all remaining furniture except both beds<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Disassemble all remaining furniture except both beds" onblur="saveEdit('day-0516','t50',this)" onkeydown="handleEditKey(event,'day-0516','t50',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t50')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0516','t50')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0516" onkeydown="handleAddKey(event,'day-0516')">
+            <select class="add-badge-select" id="badge-select-day-0516">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0516')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day neutral" id="day-0517" data-day-id="day-0517">
+        <div class="day-header" onclick="toggleDay('day-0517')">
+          <div class="day-label"><div class="day-date">Sun May 17</div><div class="day-name">Stage day</div></div>
+          <div class="day-summary">Load parents' truck with confirmed overflow items, Stage all…</div>
+          <div class="day-progress">0/4</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0517" ondragover="onDayDragOver(event,'day-0517')" ondragleave="onDayDragLeave(event,'day-0517')" ondrop="onDayDrop(event,'day-0517')">
+          
+  <div class="task-row" id="tr-t51" data-task-id="t51" data-day-id="day-0517" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0517','t51',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0517',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0517',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t51')" onmouseup="disableDrag('tr-t51')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0517','t51')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Load parents' truck with confirmed overflow items<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Load parents' truck with confirmed overflow items" onblur="saveEdit('day-0517','t51',this)" onkeydown="handleEditKey(event,'day-0517','t51',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t51')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0517','t51')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t52" data-task-id="t52" data-day-id="day-0517" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0517','t52',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0517',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0517',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t52')" onmouseup="disableDrag('tr-t52')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0517','t52')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Stage all boxes and wrapped furniture at front door / driveway<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Stage all boxes and wrapped furniture at front door / driveway" onblur="saveEdit('day-0517','t52',this)" onkeydown="handleEditKey(event,'day-0517','t52',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t52')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0517','t52')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t53" data-task-id="t53" data-day-id="day-0517" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0517','t53',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0517',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0517',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t53')" onmouseup="disableDrag('tr-t53')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0517','t53')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Plan Penske load order: furniture → heavy boxes → medium → fragile on top<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Plan Penske load order: furniture → heavy boxes → medium → fragile on top" onblur="saveEdit('day-0517','t53',this)" onkeydown="handleEditKey(event,'day-0517','t53',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t53')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0517','t53')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t54" data-task-id="t54" data-day-id="day-0517" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-0517','t54',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0517',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0517',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t54')" onmouseup="disableDrag('tr-t54')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0517','t54')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Last night with TV and wifi — pack both Monday morning<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Last night with TV and wifi — pack both Monday morning" onblur="saveEdit('day-0517','t54',this)" onkeydown="handleEditKey(event,'day-0517','t54',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t54')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0517','t54')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0517" onkeydown="handleAddKey(event,'day-0517')">
+            <select class="add-badge-select" id="badge-select-day-0517">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0517')">+ Add</button>
+          </div>
+        </div>
+      </div><div class="phase-header">May 18–19 — Loading &amp; departure</div>
+      <div class="day critical" id="day-0518" data-day-id="day-0518">
+        <div class="day-header" onclick="toggleDay('day-0518')">
+          <div class="day-label"><div class="day-date">Mon May 18</div><div class="day-name">Loading day</div></div>
+          <div class="day-summary">Pick up Penske 26ft truck, Pack router, TV, medicine, cleani…</div>
+          <div class="day-progress">0/5</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0518" ondragover="onDayDragOver(event,'day-0518')" ondragleave="onDayDragLeave(event,'day-0518')" ondrop="onDayDrop(event,'day-0518')">
+          
+  <div class="task-row" id="tr-t55" data-task-id="t55" data-day-id="day-0518" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0518','t55',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0518',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0518',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t55')" onmouseup="disableDrag('tr-t55')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0518','t55')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Pick up Penske 26ft truck<span class="badges"><span class="who who-c">C</span></span></div>
+      <input class="task-text-input" type="text" value="Pick up Penske 26ft truck" onblur="saveEdit('day-0518','t55',this)" onkeydown="handleEditKey(event,'day-0518','t55',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t55')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0518','t55')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t56" data-task-id="t56" data-day-id="day-0518" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0518','t56',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0518',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0518',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t56')" onmouseup="disableDrag('tr-t56')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0518','t56')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Pack router, TV, medicine, cleaning supplies, 2F bathroom last items<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Pack router, TV, medicine, cleaning supplies, 2F bathroom last items" onblur="saveEdit('day-0518','t56',this)" onkeydown="handleEditKey(event,'day-0518','t56',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t56')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0518','t56')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t57" data-task-id="t57" data-day-id="day-0518" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0518','t57',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0518',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0518',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t57')" onmouseup="disableDrag('tr-t57')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0518','t57')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">3-person paid crew arrives — load Penske (4 hrs)<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="3-person paid crew arrives — load Penske (4 hrs)" onblur="saveEdit('day-0518','t57',this)" onkeydown="handleEditKey(event,'day-0518','t57',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t57')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0518','t57')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t59" data-task-id="t59" data-day-id="day-0518" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-0518','t59',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0518',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0518',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t59')" onmouseup="disableDrag('tr-t59')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0518','t59')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Final walkthrough — every room, closet, cabinet, basement, shed, backyard<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Final walkthrough — every room, closet, cabinet, basement, shed, backyard" onblur="saveEdit('day-0518','t59',this)" onkeydown="handleEditKey(event,'day-0518','t59',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t59')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0518','t59')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t61" data-task-id="t61" data-day-id="day-0518" data-idx="4" draggable="false" ondragstart="onTaskDragStart(event,'day-0518','t61',4)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0518',4)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0518',4)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t61')" onmouseup="disableDrag('tr-t61')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0518','t61')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Sleep on mattresses at the house overnight<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Sleep on mattresses at the house overnight" onblur="saveEdit('day-0518','t61',this)" onkeydown="handleEditKey(event,'day-0518','t61',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t61')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0518','t61')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0518" onkeydown="handleAddKey(event,'day-0518')">
+            <select class="add-badge-select" id="badge-select-day-0518">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0518')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day milestone" id="day-0519" data-day-id="day-0519">
+        <div class="day-header" onclick="toggleDay('day-0519')">
+          <div class="day-label"><div class="day-date">Tue May 19</div><div class="day-name">Depart Detroit</div></div>
+          <div class="day-summary">Early morning: disassemble both beds, load mattresses into P…</div>
+          <div class="day-progress">0/4</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0519" ondragover="onDayDragOver(event,'day-0519')" ondragleave="onDayDragLeave(event,'day-0519')" ondrop="onDayDrop(event,'day-0519')">
+          
+  <div class="task-row" id="tr-t62" data-task-id="t62" data-day-id="day-0519" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0519','t62',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0519',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0519',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t62')" onmouseup="disableDrag('tr-t62')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0519','t62')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Early morning: disassemble both beds, load mattresses into Penske first<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Early morning: disassemble both beds, load mattresses into Penske first" onblur="saveEdit('day-0519','t62',this)" onkeydown="handleEditKey(event,'day-0519','t62',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t62')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0519','t62')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t1014_1778421181581" data-task-id="t1014_1778421181581" data-day-id="day-0519" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0519','t1014_1778421181581',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0519',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0519',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t1014_1778421181581')" onmouseup="disableDrag('tr-t1014_1778421181581')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0519','t1014_1778421181581')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Leave keys and gate openers in keybox<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Leave keys and gate openers in keybox" onblur="saveEdit('day-0519','t1014_1778421181581',this)" onkeydown="handleEditKey(event,'day-0519','t1014_1778421181581',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t1014_1778421181581')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0519','t1014_1778421181581')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t63" data-task-id="t63" data-day-id="day-0519" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0519','t63',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0519',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0519',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t63')" onmouseup="disableDrag('tr-t63')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0519','t63')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Depart Detroit — target 9am<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Depart Detroit — target 9am" onblur="saveEdit('day-0519','t63',this)" onkeydown="handleEditKey(event,'day-0519','t63',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t63')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0519','t63')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t65" data-task-id="t65" data-day-id="day-0519" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-0519','t65',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0519',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0519',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t65')" onmouseup="disableDrag('tr-t65')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0519','t65')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Drive ~5 hrs to Charleston, WV — check into dog-friendly hotel<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Drive ~5 hrs to Charleston, WV — check into dog-friendly hotel" onblur="saveEdit('day-0519','t65',this)" onkeydown="handleEditKey(event,'day-0519','t65',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t65')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0519','t65')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0519" onkeydown="handleAddKey(event,'day-0519')">
+            <select class="add-badge-select" id="badge-select-day-0519">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0519')">+ Add</button>
+          </div>
+        </div>
+      </div><div class="phase-header">May 20–23 — Arrive &amp; unload</div>
+      <div class="day milestone" id="day-0520" data-day-id="day-0520">
+        <div class="day-header" onclick="toggleDay('day-0520')">
+          <div class="day-label"><div class="day-date">Wed May 20</div><div class="day-name">Arrive NC</div></div>
+          <div class="day-summary">Depart Charleston — ~5.5 hrs to Pittsboro, NC, Arrive at par…</div>
+          <div class="day-progress">0/4</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0520" ondragover="onDayDragOver(event,'day-0520')" ondragleave="onDayDragLeave(event,'day-0520')" ondrop="onDayDrop(event,'day-0520')">
+          
+  <div class="task-row" id="tr-t66" data-task-id="t66" data-day-id="day-0520" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0520','t66',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0520',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0520',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t66')" onmouseup="disableDrag('tr-t66')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0520','t66')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Depart Charleston — ~5.5 hrs to Pittsboro, NC<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Depart Charleston — ~5.5 hrs to Pittsboro, NC" onblur="saveEdit('day-0520','t66',this)" onkeydown="handleEditKey(event,'day-0520','t66',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t66')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0520','t66')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t67" data-task-id="t67" data-day-id="day-0520" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0520','t67',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0520',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0520',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t67')" onmouseup="disableDrag('tr-t67')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0520','t67')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Arrive at parents' home in Pittsboro<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Arrive at parents' home in Pittsboro" onblur="saveEdit('day-0520','t67',this)" onkeydown="handleEditKey(event,'day-0520','t67',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t67')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0520','t67')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t68" data-task-id="t68" data-day-id="day-0520" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0520','t68',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0520',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0520',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t68')" onmouseup="disableDrag('tr-t68')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0520','t68')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Unload personal items from MachE and parents' truck into house<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Unload personal items from MachE and parents' truck into house" onblur="saveEdit('day-0520','t68',this)" onkeydown="handleEditKey(event,'day-0520','t68',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t68')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0520','t68')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t69" data-task-id="t69" data-day-id="day-0520" data-idx="3" draggable="false" ondragstart="onTaskDragStart(event,'day-0520','t69',3)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0520',3)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0520',3)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t69')" onmouseup="disableDrag('tr-t69')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0520','t69')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Rest — Penske parked overnight at parents'<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Rest — Penske parked overnight at parents'" onblur="saveEdit('day-0520','t69',this)" onkeydown="handleEditKey(event,'day-0520','t69',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t69')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0520','t69')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0520" onkeydown="handleAddKey(event,'day-0520')">
+            <select class="add-badge-select" id="badge-select-day-0520">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0520')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day important" id="day-0521" data-day-id="day-0521">
+        <div class="day-header" onclick="toggleDay('day-0521')">
+          <div class="day-label"><div class="day-date">Thu May 21</div><div class="day-name">Unload day 1</div></div>
+          <div class="day-summary">All four: unload Penske into U-Haul storage unit, Chapel Hil</div>
+          <div class="day-progress">0/2</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0521" ondragover="onDayDragOver(event,'day-0521')" ondragleave="onDayDragLeave(event,'day-0521')" ondrop="onDayDrop(event,'day-0521')">
+          
+  <div class="task-row" id="tr-t70" data-task-id="t70" data-day-id="day-0521" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0521','t70',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0521',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0521',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t70')" onmouseup="disableDrag('tr-t70')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0521','t70')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">All four: unload Penske into U-Haul storage unit, Chapel Hill<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="All four: unload Penske into U-Haul storage unit, Chapel Hill" onblur="saveEdit('day-0521','t70',this)" onkeydown="handleEditKey(event,'day-0521','t70',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t70')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0521','t70')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t71" data-task-id="t71" data-day-id="day-0521" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0521','t71',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0521',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0521',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t71')" onmouseup="disableDrag('tr-t71')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0521','t71')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Largest/heaviest items to back of unit; labeled boxes toward front<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Largest/heaviest items to back of unit; labeled boxes toward front" onblur="saveEdit('day-0521','t71',this)" onkeydown="handleEditKey(event,'day-0521','t71',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t71')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0521','t71')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0521" onkeydown="handleAddKey(event,'day-0521')">
+            <select class="add-badge-select" id="badge-select-day-0521">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0521')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day important" id="day-0522" data-day-id="day-0522">
+        <div class="day-header" onclick="toggleDay('day-0522')">
+          <div class="day-label"><div class="day-date">Fri May 22</div><div class="day-name">Unload day 2</div></div>
+          <div class="day-summary">Finish unloading if not done Thursday, Return moving blanket</div>
+          <div class="day-progress">0/3</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0522" ondragover="onDayDragOver(event,'day-0522')" ondragleave="onDayDragLeave(event,'day-0522')" ondrop="onDayDrop(event,'day-0522')">
+          
+  <div class="task-row" id="tr-t72" data-task-id="t72" data-day-id="day-0522" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0522','t72',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0522',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0522',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t72')" onmouseup="disableDrag('tr-t72')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0522','t72')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Finish unloading if not done Thursday<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Finish unloading if not done Thursday" onblur="saveEdit('day-0522','t72',this)" onkeydown="handleEditKey(event,'day-0522','t72',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t72')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0522','t72')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t73" data-task-id="t73" data-day-id="day-0522" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0522','t73',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0522',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0522',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t73')" onmouseup="disableDrag('tr-t73')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0522','t73')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Return moving blankets/pads to truck<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Return moving blankets/pads to truck" onblur="saveEdit('day-0522','t73',this)" onkeydown="handleEditKey(event,'day-0522','t73',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t73')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0522','t73')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t74" data-task-id="t74" data-day-id="day-0522" data-idx="2" draggable="false" ondragstart="onTaskDragStart(event,'day-0522','t74',2)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0522',2)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0522',2)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t74')" onmouseup="disableDrag('tr-t74')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0522','t74')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Clean out Penske and document truck condition before return<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Clean out Penske and document truck condition before return" onblur="saveEdit('day-0522','t74',this)" onkeydown="handleEditKey(event,'day-0522','t74',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t74')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0522','t74')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0522" onkeydown="handleAddKey(event,'day-0522')">
+            <select class="add-badge-select" id="badge-select-day-0522">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0522')">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="day critical" id="day-0523" data-day-id="day-0523">
+        <div class="day-header" onclick="toggleDay('day-0523')">
+          <div class="day-label"><div class="day-date">Sat May 23</div><div class="day-name">Truck due</div></div>
+          <div class="day-summary">Return Penske truck — Chapel Hill/Pittsboro location (hard d</div>
+          <div class="day-progress">0/2</div>
+          <div class="chevron">▾</div>
+        </div>
+        <div class="day-tasks" data-day-id="day-0523" ondragover="onDayDragOver(event,'day-0523')" ondragleave="onDayDragLeave(event,'day-0523')" ondrop="onDayDrop(event,'day-0523')">
+          
+  <div class="task-row" id="tr-t75" data-task-id="t75" data-day-id="day-0523" data-idx="0" draggable="false" ondragstart="onTaskDragStart(event,'day-0523','t75',0)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0523',0)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0523',0)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t75')" onmouseup="disableDrag('tr-t75')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0523','t75')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Return Penske truck — Chapel Hill/Pittsboro location (hard deadline)<span class="badges"><span class="who who-c">C</span><span class="tag tag-logistics">logistics</span></span></div>
+      <input class="task-text-input" type="text" value="Return Penske truck — Chapel Hill/Pittsboro location (hard deadline)" onblur="saveEdit('day-0523','t75',this)" onkeydown="handleEditKey(event,'day-0523','t75',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t75')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0523','t75')" title="Delete">✕</button>
+    </div>
+  </div>
+  <div class="task-row" id="tr-t76" data-task-id="t76" data-day-id="day-0523" data-idx="1" draggable="false" ondragstart="onTaskDragStart(event,'day-0523','t76',1)" ondragend="onTaskDragEnd(event)" ondragover="onTaskDragOver(event,'day-0523',1)" ondragleave="onTaskDragLeave(event)" ondrop="onTaskDrop(event,'day-0523',1)">
+    <div class="drag-handle" onmousedown="enableDrag('tr-t76')" onmouseup="disableDrag('tr-t76')">⠿</div>
+    <div class="task-cb " onclick="toggleTask('day-0523','t76')"></div>
+    <div class="task-text-wrap">
+      <div class="task-text ">Move complete! 🎉<span class="badges"><span class="who who-b">B</span></span></div>
+      <input class="task-text-input" type="text" value="Move complete! 🎉" onblur="saveEdit('day-0523','t76',this)" onkeydown="handleEditKey(event,'day-0523','t76',this)">
+    </div>
+    <div class="task-actions">
+      <button class="task-btn" onclick="startEdit('tr-t76')" title="Edit">✎</button>
+      <button class="task-btn delete" onclick="deleteTask('day-0523','t76')" title="Delete">✕</button>
+    </div>
+  </div>
+          <div class="add-task-row">
+            <input class="add-task-input" type="text" placeholder="Add a task…" data-day-id="day-0523" onkeydown="handleAddKey(event,'day-0523')">
+            <select class="add-badge-select" id="badge-select-day-0523">
+              <option value="B">Both</option>
+              <option value="E">Emma</option>
+              <option value="C">Cole</option>
+              <option value="">—</option>
+            </select>
+            <button class="add-btn" onclick="addTask('day-0523')">+ Add</button>
+          </div>
+        </div>
+      </div></div>
 </div>
 
 <div id="drag-ghost"></div>
+<div id="export-toast">✓ Downloading moving_checklist.html</div>
 
 <script>
 const STATE_KEY = 'moving_checklist_v2_2026';
 
-// ── DEFAULT DATA ──────────────────────────────────────────────────────────────
 const DEFAULT_PHASES = [
   {
     label: "Anytime — Admin & logistics",
@@ -396,7 +1712,6 @@ const DEFAULT_PHASES = [
   }
 ];
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
 let phases = [];
 let editMode = false;
 let dragSrcTask = null;
@@ -407,19 +1722,49 @@ let idCounter = 1000;
 function uid() { return 't' + (++idCounter) + '_' + Date.now(); }
 
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STATE_KEY);
-    if (raw) { phases = JSON.parse(raw); return; }
-  } catch(e) {}
-  phases = JSON.parse(JSON.stringify(DEFAULT_PHASES));
+  // Exported state — baked in at export time
+  phases = JSON.parse("[{\"label\":\"Anytime — Admin & logistics\",\"days\":[{\"id\":\"day-admin\",\"date\":\"Do soon\",\"name\":\"Background\",\"type\":\"important\",\"tasks\":[{\"id\":\"t1\",\"text\":\"USPS mail forward to parents' address — do online, 5 min\",\"badges\":[\"B\",\"admin\"],\"done\":true},{\"id\":\"t4\",\"text\":\"Confirm Penske reservation for May 18\",\"badges\":[\"B\",\"logistics\"],\"done\":true},{\"id\":\"t8\",\"text\":\"Confirm paid labor crew for May 18 afternoon\",\"badges\":[\"B\",\"logistics\"],\"done\":true},{\"id\":\"t9\",\"text\":\"Coordinate landlord walkthrough and key/gate opener return date\",\"badges\":[\"B\",\"admin\"],\"done\":true},{\"id\":\"t10\",\"text\":\"Check Penske fuel policy — prepay or fill tank before return\",\"badges\":[\"B\",\"logistics\"],\"done\":true},{\"id\":\"t11\",\"text\":\"Confirm parents have space to park 26ft Penske overnight May 20\",\"badges\":[\"B\",\"logistics\"],\"done\":true},{\"id\":\"t2\",\"text\":\"Call car insurance — update address and confirm cross-state coverage for the move\",\"badges\":[\"B\",\"admin\"],\"done\":true},{\"id\":\"t5\",\"text\":\"Book dog-friendly hotel in Charleston, WV for May 19 night\",\"badges\":[\"B\",\"logistics\"],\"done\":true},{\"id\":\"t3\",\"text\":\"Complete U-Haul storage move-in online (Reservation #782059-00110683) — get unit # and access code\",\"badges\":[\"B\",\"logistics\"],\"done\":false}]}]},{\"label\":\"Week 1 — Packing push (May 2–7)\",\"days\":[{\"id\":\"day-0502\",\"date\":\"Sat May 2\",\"name\":\"Today · ~3 hrs\",\"type\":\"important\",\"tasks\":[{\"id\":\"t12\",\"text\":\"✓ Storage unit booked (U-Haul 10×15×8, move-in May 21)\",\"badges\":[\"B\"],\"done\":true},{\"id\":\"t13\",\"text\":\"Master bedroom — Cole's closet, books, decor, non-travel clothes\",\"badges\":[\"B\"],\"done\":true}]},{\"id\":\"day-0503\",\"date\":\"Sun May 3\",\"name\":\"Full day\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t15\",\"text\":\"Basement — tools, exercise equipment, laundry supplies\",\"badges\":[\"C\"],\"done\":true},{\"id\":\"t28\",\"text\":\"Cole's office remaining items — harddrives, keyboard, sentimental, frames, design inspo (OFF-03–06; 1–2 hrs)\",\"badges\":[\"E\"],\"done\":true},{\"id\":\"t1001_1777843661323\",\"text\":\"Finish packing spare room (2F) desk items\",\"badges\":[\"E\"],\"done\":true}]},{\"id\":\"day-0504\",\"date\":\"Mon May 4\",\"name\":\"Weekday\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t19\",\"text\":\"Continue basement — remaining storage and large tools\",\"badges\":[\"C\"],\"done\":true},{\"id\":\"t21\",\"text\":\"Emma's closet (3F) — start with clothes, shoes, bags (1–2 hrs)\",\"badges\":[\"E\"],\"done\":true},{\"id\":\"t30\",\"text\":\"Full Airtable audit — update statuses, flag gaps\",\"badges\":[\"B\"],\"done\":true}]},{\"id\":\"day-0505\",\"date\":\"Tue May 5\",\"name\":\"Weekday\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t1005_1778111556342\",\"text\":\"Continue basement — remaining storage and large tools\",\"badges\":[\"B\"],\"done\":true},{\"id\":\"t25\",\"text\":\"Disassemble any furniture that can come apart early\",\"badges\":[\"C\"],\"done\":true},{\"id\":\"t14\",\"text\":\"Sewing room (3F) — SEW-01, 03, 04, 06 (SEW-02 and SEW-05 already packed)\",\"badges\":[\"E\"],\"done\":true}]},{\"id\":\"day-0506\",\"date\":\"Wed May 6\",\"name\":\"Weekday\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t18\",\"text\":\"Do a full load of laundry\",\"badges\":[\"B\"],\"done\":true},{\"id\":\"t37\",\"text\":\"Sewing room final sweep — anything remaining (1–2 hrs)\",\"badges\":[\"E\"],\"done\":true},{\"id\":\"t1006_1778111693353\",\"text\":\"Continue basement\",\"badges\":[\"C\"],\"done\":true}]},{\"id\":\"day-0507\",\"date\":\"Thu May 7\",\"name\":\"Emma off work\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t29\",\"text\":\"Kitchen — pack down to essentials\",\"badges\":[\"B\"],\"done\":true},{\"id\":\"t1004_1777843916028\",\"text\":\"Stage all packed boxes toward living/dining room\",\"badges\":[\"B\"],\"done\":true}]}]},{\"label\":\"May 8–10 — Out of town\",\"days\":[{\"id\":\"day-trip\",\"date\":\"Fri–Sun May 8–10\",\"name\":\"Away\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t32\",\"text\":\"No packing — rest and recharge\",\"badges\":[],\"done\":true},{\"id\":\"t33\",\"text\":\"Return home late Sunday evening\",\"badges\":[],\"done\":true}]}]},{\"label\":\"Week 2 — Final push (May 11–17)\",\"days\":[{\"id\":\"day-0511\",\"date\":\"Mon May 11\",\"name\":\"Weekday\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t1013_1778420996622\",\"text\":\"Emma's Closet\",\"badges\":[\"E\"],\"done\":true},{\"id\":\"t1008_1778112117160\",\"text\":\"Continue Kitchen\",\"badges\":[\"C\"],\"done\":true},{\"id\":\"t22\",\"text\":\"Living room — remaining items except sofa, TV, router\",\"badges\":[\"C\"],\"done\":true},{\"id\":\"t1003_1777843871137\",\"text\":\"Finish packing non-essential entryway items\",\"badges\":[\"B\"],\"done\":true}]},{\"id\":\"day-0512\",\"date\":\"Tue May 12\",\"name\":\"Weekday\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t48\",\"text\":\"Pack any remaining kitchen items — leave bare minimum for 3 days\",\"badges\":[\"B\"],\"done\":true},{\"id\":\"t23\",\"text\":\"Identify and stage large furniture for load day\",\"badges\":[\"C\"],\"done\":true},{\"id\":\"t1011_1778112206156\",\"text\":\"Stage everything on first and second floor\",\"badges\":[\"B\"],\"done\":true},{\"id\":\"t35\",\"text\":\"Pack dog items — crates, food, beds, toys (keep travel set out)\",\"badges\":[\"C\"],\"done\":true},{\"id\":\"t1010_1778112184739\",\"text\":\"MachE personal load — start pulling daily-use items together (medicine, laptops, chargers; 1–2 hrs)\",\"badges\":[\"B\"],\"done\":true}]},{\"id\":\"day-0513\",\"date\":\"Wed May 13\",\"name\":\"Weekday\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t1015_1778542896621\",\"text\":\"Finish closet\",\"badges\":[\"E\"],\"done\":false},{\"id\":\"t40\",\"text\":\"2F bathroom — pack down to 3-day essentials only (1–2 hrs)\",\"badges\":[\"E\"],\"done\":false},{\"id\":\"t16\",\"text\":\"Outdoor shed — shovels, rakes, hoses, garden tools\",\"badges\":[\"C\"],\"done\":false},{\"id\":\"t41\",\"text\":\"Any remaining furniture disassembly\",\"badges\":[\"C\"],\"done\":false},{\"id\":\"t1009_1778112175414\",\"text\":\"Confirm storage unit access hours for May 21–22\",\"badges\":[\"E\"],\"done\":false}]},{\"id\":\"day-0514\",\"date\":\"Thu May 14\",\"name\":\"Weekday\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t1002_1777843817454\",\"text\":\"Full walkthrough — refresh Airtable, identify any gaps\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t44\",\"text\":\"Set aside guest room for parents' arrival tomorrow — bed stays assembled\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t45\",\"text\":\"Finish MachE bag — clothes, toiletries, dog travel kit (1–2 hrs)\",\"badges\":[\"E\"],\"done\":false}]},{\"id\":\"day-0515\",\"date\":\"Fri May 15\",\"name\":\"Parents arrive\",\"type\":\"important\",\"tasks\":[{\"id\":\"t46\",\"text\":\"Parents arrive — guest bed assembled and ready\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t47\",\"text\":\"Walk parents through convoy plan and overflow list\",\"badges\":[\"B\"],\"done\":false}]},{\"id\":\"day-0516\",\"date\":\"Sat May 16\",\"name\":\"Pre-load\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t1007_1778111751499\",\"text\":\"Get a van and do a large dump/donation run\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t49\",\"text\":\"All four: final pack — nothing left except both beds, router, TV, medicine, cleaning supplies\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t50\",\"text\":\"Disassemble all remaining furniture except both beds\",\"badges\":[\"B\"],\"done\":false}]},{\"id\":\"day-0517\",\"date\":\"Sun May 17\",\"name\":\"Stage day\",\"type\":\"neutral\",\"tasks\":[{\"id\":\"t51\",\"text\":\"Load parents' truck with confirmed overflow items\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t52\",\"text\":\"Stage all boxes and wrapped furniture at front door / driveway\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t53\",\"text\":\"Plan Penske load order: furniture → heavy boxes → medium → fragile on top\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t54\",\"text\":\"Last night with TV and wifi — pack both Monday morning\",\"badges\":[\"B\"],\"done\":false}]}]},{\"label\":\"May 18–19 — Loading & departure\",\"days\":[{\"id\":\"day-0518\",\"date\":\"Mon May 18\",\"name\":\"Loading day\",\"type\":\"critical\",\"tasks\":[{\"id\":\"t55\",\"text\":\"Pick up Penske 26ft truck\",\"badges\":[\"C\"],\"done\":false},{\"id\":\"t56\",\"text\":\"Pack router, TV, medicine, cleaning supplies, 2F bathroom last items\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t57\",\"text\":\"3-person paid crew arrives — load Penske (4 hrs)\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t59\",\"text\":\"Final walkthrough — every room, closet, cabinet, basement, shed, backyard\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t61\",\"text\":\"Sleep on mattresses at the house overnight\",\"badges\":[\"B\"],\"done\":false}]},{\"id\":\"day-0519\",\"date\":\"Tue May 19\",\"name\":\"Depart Detroit\",\"type\":\"milestone\",\"tasks\":[{\"id\":\"t62\",\"text\":\"Early morning: disassemble both beds, load mattresses into Penske first\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t1014_1778421181581\",\"text\":\"Leave keys and gate openers in keybox\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t63\",\"text\":\"Depart Detroit — target 9am\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t65\",\"text\":\"Drive ~5 hrs to Charleston, WV — check into dog-friendly hotel\",\"badges\":[\"B\"],\"done\":false}]}]},{\"label\":\"May 20–23 — Arrive & unload\",\"days\":[{\"id\":\"day-0520\",\"date\":\"Wed May 20\",\"name\":\"Arrive NC\",\"type\":\"milestone\",\"tasks\":[{\"id\":\"t66\",\"text\":\"Depart Charleston — ~5.5 hrs to Pittsboro, NC\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t67\",\"text\":\"Arrive at parents' home in Pittsboro\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t68\",\"text\":\"Unload personal items from MachE and parents' truck into house\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t69\",\"text\":\"Rest — Penske parked overnight at parents'\",\"badges\":[\"B\"],\"done\":false}]},{\"id\":\"day-0521\",\"date\":\"Thu May 21\",\"name\":\"Unload day 1\",\"type\":\"important\",\"tasks\":[{\"id\":\"t70\",\"text\":\"All four: unload Penske into U-Haul storage unit, Chapel Hill\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t71\",\"text\":\"Largest/heaviest items to back of unit; labeled boxes toward front\",\"badges\":[\"B\"],\"done\":false}]},{\"id\":\"day-0522\",\"date\":\"Fri May 22\",\"name\":\"Unload day 2\",\"type\":\"important\",\"tasks\":[{\"id\":\"t72\",\"text\":\"Finish unloading if not done Thursday\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t73\",\"text\":\"Return moving blankets/pads to truck\",\"badges\":[\"B\"],\"done\":false},{\"id\":\"t74\",\"text\":\"Clean out Penske and document truck condition before return\",\"badges\":[\"B\"],\"done\":false}]},{\"id\":\"day-0523\",\"date\":\"Sat May 23\",\"name\":\"Truck due\",\"type\":\"critical\",\"tasks\":[{\"id\":\"t75\",\"text\":\"Return Penske truck — Chapel Hill/Pittsboro location (hard deadline)\",\"badges\":[\"C\",\"logistics\"],\"done\":false},{\"id\":\"t76\",\"text\":\"Move complete! 🎉\",\"badges\":[\"B\"],\"done\":false}]}]}]");
 }
 function saveState() {
   try { localStorage.setItem(STATE_KEY, JSON.stringify(phases)); } catch(e) {}
 }
-
 function findDay(dayId) {
   for (const ph of phases) for (const d of ph.days) if (d.id === dayId) return d;
   return null;
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+function exportHTML() {
+  // Get current live state
+  const currentState = JSON.stringify(phases);
+
+  // Grab this page's full HTML
+  const originalHTML = document.documentElement.outerHTML;
+
+  // Replace the DEFAULT_PHASES assignment and loadState so it loads from hardcoded data
+  // We inject the current state as the new DEFAULT_PHASES by patching loadState
+  const exportedHTML = originalHTML.replace(
+    /function loadState\(\) \{[\s\S]*?phases = JSON\.parse\(JSON\.stringify\(DEFAULT_PHASES\)\);\s*\}/,
+    `function loadState() {
+  // Exported state — baked in at export time
+  phases = JSON.parse(${JSON.stringify(currentState)});
+}`
+  );
+
+  const blob = new Blob([exportedHTML], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'moving_checklist.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // Show toast
+  const toast = document.getElementById('export-toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -502,7 +1847,6 @@ function taskHTML(t, dayId, idx) {
 function escapeHTML(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeAttr(s) { return s.replace(/"/g,'&quot;'); }
 
-// ── TOGGLE / CHECK ────────────────────────────────────────────────────────────
 function toggleDay(dayId) {
   document.getElementById(dayId).classList.toggle('collapsed');
 }
@@ -512,7 +1856,6 @@ function toggleTask(dayId, taskId) {
   const t = day.tasks.find(x => x.id === taskId);
   t.done = !t.done;
   saveState();
-  // just update the checkbox and text visually without full re-render
   const cb = document.querySelector(`#tr-${taskId} .task-cb`);
   const txt = document.querySelector(`#tr-${taskId} .task-text`);
   cb.classList.toggle('checked', t.done);
@@ -520,7 +1863,6 @@ function toggleTask(dayId, taskId) {
   updateProgress();
 }
 
-// ── EDIT MODE ─────────────────────────────────────────────────────────────────
 function toggleEditMode() {
   editMode = !editMode;
   const btn = document.getElementById('edit-toggle-btn');
@@ -528,14 +1870,11 @@ function toggleEditMode() {
   btn.textContent = editMode ? '✓ Done' : '✏️ Edit';
   const root = document.getElementById('checklist-root');
   root.classList.toggle('edit-mode', editMode);
-  // toggle draggable on all task rows
-  document.querySelectorAll('.task-row').forEach(row => {
-    row.draggable = editMode;
-  });
+  document.querySelectorAll('.task-row').forEach(row => { row.draggable = editMode; });
 }
 
 function enableDrag(rowId) { if (editMode) document.getElementById(rowId).draggable = true; }
-function disableDrag(rowId) { /* keep draggable while in edit mode */ }
+function disableDrag(rowId) {}
 
 function startEdit(rowId) {
   const row = document.getElementById(rowId);
@@ -592,19 +1931,14 @@ function addTask(dayId) {
   day.tasks.push(newTask);
   saveState();
   input.value = '';
-  // insert task row before add-task-row
-  const addRow = document.querySelector(`.add-task-row[data-day-id="${dayId}"]`) ||
-    document.querySelector(`[data-day-id="${dayId}"] .add-task-row`);
   const container = document.querySelector(`.day-tasks[data-day-id="${dayId}"]`);
+  const addRow = container.querySelector('.add-task-row');
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = taskHTML(newTask, dayId, day.tasks.length-1);
   const newRow = tempDiv.firstElementChild;
   newRow.draggable = editMode;
-  if (addRow && addRow.parentNode === container) {
-    container.insertBefore(newRow, addRow);
-  } else {
-    container.appendChild(newRow);
-  }
+  if (addRow) container.insertBefore(newRow, addRow);
+  else container.appendChild(newRow);
   updateProgress();
   updateDayProgress(dayId);
   updateDaySummary(dayId);
@@ -615,16 +1949,12 @@ function handleAddKey(e, dayId) {
   if (e.key === 'Enter') addTask(dayId);
 }
 
-// ── DRAG AND DROP ─────────────────────────────────────────────────────────────
 let dragOverDay = null;
 
 function onTaskDragStart(e, dayId, taskId, idx) {
-  dragSrcDayId = dayId;
-  dragSrcTask = taskId;
-  dragSrcIndex = idx;
+  dragSrcDayId = dayId; dragSrcTask = taskId; dragSrcIndex = idx;
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', taskId);
-  // show ghost
   const ghost = document.getElementById('drag-ghost');
   const day = findDay(dayId);
   const t = day.tasks.find(x => x.id === taskId);
@@ -636,9 +1966,7 @@ function onTaskDragStart(e, dayId, taskId, idx) {
 
 function onTaskDragEnd(e) {
   document.getElementById('drag-ghost').style.display = 'none';
-  document.querySelectorAll('.task-row').forEach(r => {
-    r.classList.remove('dragging','drag-above','drag-below');
-  });
+  document.querySelectorAll('.task-row').forEach(r => r.classList.remove('dragging','drag-above','drag-below'));
   document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
   dragSrcTask = null; dragSrcDayId = null; dragSrcIndex = null; dragOverDay = null;
 }
@@ -651,23 +1979,18 @@ function onTaskDragOver(e, dayId, idx) {
   document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
   const row = e.currentTarget;
   const rect = row.getBoundingClientRect();
-  const mid = rect.top + rect.height / 2;
-  if (e.clientY < mid) row.classList.add('drag-above');
+  if (e.clientY < rect.top + rect.height / 2) row.classList.add('drag-above');
   else row.classList.add('drag-below');
 }
 
-function onTaskDragLeave(e) {
-  e.currentTarget.classList.remove('drag-above','drag-below');
-}
+function onTaskDragLeave(e) { e.currentTarget.classList.remove('drag-above','drag-below'); }
 
 function onTaskDrop(e, targetDayId, targetIdx) {
   e.preventDefault(); e.stopPropagation();
   if (!dragSrcTask) return;
   const row = e.currentTarget;
   const rect = row.getBoundingClientRect();
-  const mid = rect.top + rect.height / 2;
-  const dropBefore = e.clientY < mid;
-  moveTask(dragSrcDayId, dragSrcTask, targetDayId, targetIdx, dropBefore);
+  moveTask(dragSrcDayId, dragSrcTask, targetDayId, targetIdx, e.clientY < rect.top + rect.height / 2);
   document.querySelectorAll('.task-row').forEach(r => r.classList.remove('drag-above','drag-below','dragging'));
   document.querySelectorAll('.day').forEach(d => d.classList.remove('drag-over'));
 }
@@ -684,7 +2007,6 @@ function onDayDragOver(e, dayId) {
 }
 
 function onDayDragLeave(e, dayId) {
-  // only remove if leaving the day entirely
   const rel = e.relatedTarget;
   if (!rel || !document.getElementById(dayId)?.contains(rel)) {
     document.getElementById(dayId)?.classList.remove('drag-over');
@@ -706,33 +2028,24 @@ function moveTask(fromDayId, taskId, toDayId, toIdx, before) {
   const taskIdx = fromDay.tasks.findIndex(t => t.id === taskId);
   if (taskIdx === -1) return;
   const [task] = fromDay.tasks.splice(taskIdx, 1);
-
   let insertAt = toIdx;
-  if (fromDayId === toDayId) {
-    // adjust for removal
-    if (taskIdx < toIdx) insertAt = toIdx - 1;
-  }
+  if (fromDayId === toDayId && taskIdx < toIdx) insertAt = toIdx - 1;
   if (!before && fromDayId === toDayId && insertAt >= toDay.tasks.length) {
     toDay.tasks.push(task);
   } else {
-    const pos = before ? insertAt : insertAt + 1;
-    toDay.tasks.splice(Math.max(0, Math.min(pos, toDay.tasks.length)), 0, task);
+    toDay.tasks.splice(Math.max(0, Math.min(before ? insertAt : insertAt + 1, toDay.tasks.length)), 0, task);
   }
   saveState();
   renderAll();
-  if (editMode) {
-    toggleEditMode(); toggleEditMode(); // re-apply edit mode classes
-  }
+  if (editMode) { toggleEditMode(); toggleEditMode(); }
 }
 
-// ── PROGRESS ──────────────────────────────────────────────────────────────────
 function updateProgress() {
   const all = document.querySelectorAll('.task-cb').length;
   const done = document.querySelectorAll('.task-cb.checked').length;
   const pct = all ? Math.round(done/all*100) : 0;
   document.getElementById('prog-fill').style.width = pct + '%';
   document.getElementById('prog-count').textContent = done + ' of ' + all + ' tasks complete';
-  // update per-day
   phases.forEach(ph => ph.days.forEach(d => updateDayProgress(d.id)));
 }
 
@@ -741,7 +2054,7 @@ function updateDayProgress(dayId) {
   if (!dayEl) return;
   const rows = dayEl.querySelectorAll('.task-row');
   const done = dayEl.querySelectorAll('.task-cb.checked').length;
-  const el = document.getElementById('dprog-'+dayId) || dayEl.querySelector('.day-progress');
+  const el = dayEl.querySelector('.day-progress');
   if (el) el.textContent = rows.length > 0 ? done + '/' + rows.length : '';
 }
 
@@ -751,10 +2064,7 @@ function updateDaySummary(dayId) {
   const dayEl = document.getElementById(dayId);
   if (!dayEl) return;
   const summary = dayEl.querySelector('.day-summary');
-  if (summary) {
-    const text = day.tasks.slice(0,3).map(t=>t.text).join(', ').slice(0,60) + (day.tasks.length>3?'…':'');
-    summary.textContent = text;
-  }
+  if (summary) summary.textContent = day.tasks.slice(0,3).map(t=>t.text).join(', ').slice(0,60) + (day.tasks.length>3?'…':'');
 }
 
 function resetAll() {
@@ -764,9 +2074,8 @@ function resetAll() {
   renderAll();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
 loadState();
 renderAll();
 </script>
-</body>
-</html>
+
+</body></html>
